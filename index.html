@@ -242,7 +242,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20260929-1330';
+var APP_VER='20260929-1335';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -685,7 +685,7 @@ function openDetail(){
   function row(a,b){return '<tr><td>'+a+'</td><td>'+(b==null||b===''?'–':b)+'</td></tr>';}
   var h=head('📊 詳細數字')+'<div class="detail">';
   h+='<h4>今日飲食</h4><table>'+row('熱量',tt.kcal+' kcal'+(s.dailyKcal?' / '+s.dailyKcal:''))+row('蛋白質',tt.protein+' g'+(s.proteinTarget?' / '+s.proteinTarget:''))+row('碳水',tt.carb+' g')+row('脂肪',tt.fat+' g')+row('纖維',tt.fiber+' g')+'</table>';
-  h+='<h4>琴晚瞓覺</h4><table>'+row('總睡眠',u.totalSleepMin!=null?Math.floor(u.totalSleepMin/60)+' 小時 '+(u.totalSleepMin%60)+' 分':null)+row('深層',u.deepMin!=null?u.deepMin+' 分':null)+row('REM',u.remMin!=null?u.remMin+' 分':null)+row('淺層',u.lightMin!=null?u.lightMin+' 分':null)+row('效率',u.efficiency!=null?u.efficiency+'%':null)+row('睡眠週期',u.cycles)+'</table>';
+  h+='<h4>琴晚瞓覺</h4><table>'+row('上床 → 起身',u.bedtime?u.bedtime+' → '+(u.wake||'?'):null)+row('總睡眠',u.totalSleepMin!=null?Math.floor(u.totalSleepMin/60)+' 小時 '+(u.totalSleepMin%60)+' 分':null)+row('深層',u.deepMin!=null?u.deepMin+' 分':null)+row('REM',u.remMin!=null?u.remMin+' 分':null)+row('淺層',u.lightMin!=null?u.lightMin+' 分':null)+row('效率',u.efficiency!=null?u.efficiency+'%':null)+row('睡眠週期',u.cycles)+'</table>';
   h+='<h4>身體</h4><table>'+row('靜息心率',u.rhr!=null?u.rhr+' bpm':null)+row('HRV',u.hrv!=null?u.hrv+' ms':null)+row('血氧',u.spo2!=null?u.spo2+'%':null)+row('皮膚溫度',u.skinTemp!=null?u.skinTemp+' °C':null)+row('步數',u.steps)+row('活動分鐘',u.activeMin)+'</table>';
   var wk=Object.keys(state.weights).sort().pop(), bk=Object.keys(state.bf).sort().pop();
   h+='<h4>體重・體脂（想記先記）</h4><table>'+row('最近體重',wk?state.weights[wk]+' kg（'+wk.slice(5)+'）':null)+row('目標體重',s.goalKg?s.goalKg+' kg':null)+row('最近體脂',bk?state.bf[bk]+'%（'+bk.slice(5)+'）':null)+row('目標體脂',s.goalBf?s.goalBf+'%':null)+'</table>';
