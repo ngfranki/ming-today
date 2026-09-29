@@ -188,6 +188,14 @@
   .toast{position:fixed; left:50%; top:calc(14px + env(safe-area-inset-top)); transform:translate(-50%,-150%); background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:999px; font-weight:600; transition:transform .3s; z-index:60; font-size:15px; max-width:90%; text-align:center}
   .toast.show{transform:translate(-50%,0)}
   #fx{position:fixed; inset:0; pointer-events:none; z-index:50}
+  .celebrate{position:fixed; inset:0; z-index:45; background:rgba(20,16,30,.72); display:flex; align-items:center; justify-content:center; padding:24px}
+  .celebrate .box{position:relative; z-index:55; background:var(--card); border-radius:32px; padding:22px 20px 20px; width:100%; max-width:340px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.35); animation:popin .6s cubic-bezier(.2,1.6,.4,1)}
+  .celebrate .pet{width:170px; margin:-80px auto 4px; animation:hop 1.2s ease-in-out infinite}
+  .celebrate .pet svg{width:100%; height:auto; filter:drop-shadow(0 10px 14px rgba(0,0,0,.25))}
+  .celebrate h3{margin:4px 0 6px; font-size:22px}
+  .celebrate p{margin:0 0 16px; color:var(--muted); font-size:15px}
+  @keyframes popin{0%{transform:scale(.3); opacity:0}100%{transform:scale(1); opacity:1}}
+  @keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px) rotate(-3deg)}}
   .pop{animation:pop .5s ease}
   @keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
   .syncdot{font-size:12px; color:var(--muted); text-align:center; margin-top:6px}
@@ -253,7 +261,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20260929-1414';
+var APP_VER='20260929-1417';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -396,7 +404,7 @@ function render(){
   var sk=streak(); $('streak').textContent='🔥 '+sk+' 日';
   document.querySelectorAll('nav.tabs button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===tab);});
   $('main').innerHTML=tab==='today'?viewToday():tab==='wall'?viewWall():viewFun();
-  checkBadges(); checkFriends();
+  checkBadges(); checkFriends(); setTimeout(maybeCelebrate,700);
 }
 function viewToday(){
   var t=today(), u=uh(t), tt=totals(t), s=state.settings;
@@ -634,9 +642,46 @@ function checkFriends(){
   if(!state.questWins[t]&&q.every(function(x){return x.test(t);})){mutate(function(s){s.questWins[t]=true;});setTimeout(function(){confetti();toast('🍀 今日小任務全勝！');},300);}
   FRIENDS.forEach(function(f){
     if(!f.test||state.friends.indexOf(f.id)>=0)return;
-    if(friendCount(f)>=f.need){mutate(function(s){if(s.friends.indexOf(f.id)<0)s.friends.push(f.id);});setTimeout(function(){confetti();toast('🎉 '+f.n+' 加入咗你嘅動物朋友！');},1200);}
+    if(friendCount(f)>=f.need){mutate(function(s){if(s.friends.indexOf(f.id)<0)s.friends.push(f.id);});}
   });
 }
+/* ---------- 🎆 新朋友加入慶祝：每部手機各自記住睇過未（撳「歡迎」先算睇過），所以唔會被第二部機「用咗」 ---------- */
+var SEEN_KEY='mingSeenFriends'+(DEMO?'Demo':''), celebrating=false, dataReady=false;
+function seenList(){try{return JSON.parse(localStorage.getItem(SEEN_KEY)||'[]');}catch(e){return [];}}
+function markSeen(id){try{var a=seenList();if(a.indexOf(id)<0)a.push(id);localStorage.setItem(SEEN_KEY,JSON.stringify(a));}catch(e){}}
+function pendingCelebration(){
+  if(!state||!dataReady)return null; var seen=seenList();
+  return FRIENDS.filter(function(f){return f.test&&hasFriend(f)&&seen.indexOf(f.id)<0;})[0]||null;
+}
+function maybeCelebrate(){
+  if(celebrating)return; var f=pendingCelebration(); if(!f)return;
+  celebrating=true;
+  var el=document.createElement('div'); el.className='celebrate';
+  el.innerHTML='<div class="box"><div class="pet">'+animalSVG(f.id,'none','happy')+'</div><h3>🎉 '+esc(f.n)+' 加入咗！</h3><p>因為你做到：'+esc(f.hint.replace('累積 ',''))+'</p>'+
+    '<button class="btn fun" style="width:100%" data-act="welcome" data-id="'+f.id+'">歡迎 '+esc(f.n)+'！</button><button class="btn" style="width:100%;margin-top:8px;background:none;color:var(--muted);font-weight:600" data-act="welcomeBuddy" data-id="'+f.id+'">揀佢陪我 🐾</button></div>';
+  document.body.appendChild(el);
+  fireworks(3600);
+}
+function endCelebrate(id,asBuddy){
+  markSeen(id); var el=document.querySelector('.celebrate'); if(el)el.remove(); celebrating=false;
+  if(asBuddy){mutate(function(s){s.settings.buddy=id;});}
+  confetti(); setTimeout(maybeCelebrate,900);
+}
+function fireworks(ms){
+  var c=$('fx'),g=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
+  var cols=['#FF7A6B','#FFB940','#9B87F5','#4FBDEB','#FF8FBF','#FFE27A','#7FE0B0'],ps=[],t0=Date.now(),next=0;
+  function burst(){var x=innerWidth*(.15+Math.random()*.7),y=innerHeight*(.12+Math.random()*.35),col=cols[Math.floor(Math.random()*cols.length)],n=46;
+    for(var i=0;i<n;i++){var a=Math.PI*2*i/n,sp=2.5+Math.random()*3.5;ps.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,c:Math.random()<.25?'#FFFFFF':col});}}
+  (function f(){
+    var el=Date.now()-t0; if(el<ms&&el>=next){burst();next=el+380+Math.random()*320;}
+    g.fillStyle='rgba(0,0,0,0)'; g.clearRect(0,0,c.width,c.height);
+    ps.forEach(function(p){p.vy+=.06;p.vx*=.985;p.vy*=.985;p.x+=p.vx;p.y+=p.vy;p.life-=.012;
+      if(p.life>0){g.globalAlpha=Math.max(0,p.life);g.fillStyle=p.c;g.beginPath();g.arc(p.x,p.y,2.6,0,7);g.fill();}});
+    g.globalAlpha=1; ps=ps.filter(function(p){return p.life>0;});
+    if(el<ms||ps.length)requestAnimationFrame(f);else g.clearRect(0,0,c.width,c.height);
+  })();
+}
+
 function viewFriends(){
   var cur=buddy(), h='<section class="card"><h2>🐾 動物朋友 <span class="more">'+FRIENDS.filter(hasFriend).length+'/'+FRIENDS.length+'</span></h2><div class="locker">';
   FRIENDS.forEach(function(f){
@@ -1003,6 +1048,8 @@ document.addEventListener('click',function(e){
   else if(a==='doShare')doShare();
   else if(a==='duoOn'){mutate(function(s){s.settings.duo.sleep=true;});toast('👨‍👧 加入咗！');}
   else if(a==='duoOff'){mutate(function(s){s.settings.duo.sleep=false;});toast('已退出，唔再分享');}
+  else if(a==='welcome'){endCelebrate(b.getAttribute('data-id'),false);toast('🐾 歡迎新朋友！');}
+  else if(a==='welcomeBuddy'){var wid=b.getAttribute('data-id');endCelebrate(wid,true);toast('🐾 '+FRIENDS.filter(function(x){return x.id===wid;})[0].n+' 而家陪你');}
   else if(a==='buddy'){var bid=b.getAttribute('data-id');mutate(function(s){s.settings.buddy=bid;});toast('🐾 '+FRIENDS.filter(function(x){return x.id===bid;})[0].n+' 而家陪你');}
   else if(a==='lockedFriend'){var lf=FRIENDS.filter(function(x){return x.id===b.getAttribute('data-id');})[0];toast('🔒 '+lf.hint+' 就解鎖');}
   else if(a==='usefav')useFav(b.getAttribute('data-id'));
@@ -1048,12 +1095,12 @@ function demoState(){
   return s;
 }
 function boot(){
-  if(DEMO){state=demoState();lastTs='demo';showApp();render();setSync('示範模式·唔會儲');return;}
+  if(DEMO){state=demoState();lastTs='demo';dataReady=true;showApp();render();setSync('示範模式·唔會儲');return;}
   if(!KEY){showGate('');return;}
   try{var c=JSON.parse(localStorage.getItem('mingCache')||'null');if(c&&c.state&&!state){state=defaults(c.state);lastTs=c.ts;showApp();render();}}catch(e){}
   fetchRow().then(function(rs){
     if(!rs.length){try{localStorage.removeItem('mingKey');localStorage.removeItem('mingCache');}catch(e){}KEY='';state=null;showGate('暗號唔啱，再試一次');return;}
-    state=defaults(rs[0].state);lastTs=rs[0].updated_at;cacheSave();showApp();render();setSync('已同步 '+nowT());
+    state=defaults(rs[0].state);lastTs=rs[0].updated_at;dataReady=true;cacheSave();showApp();render();setSync('已同步 '+nowT());
     loadPhotos(shift(today(),-30),today());loadDuo();
   }).catch(function(){if(state){setSync('離線，用緊上次嘅資料');}else showGate('連唔到網絡，遲啲再試');});
 }
