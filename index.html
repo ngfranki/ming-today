@@ -43,6 +43,11 @@
 
   .card{background:var(--card); border-radius:26px; box-shadow:var(--shadow); padding:18px; margin-bottom:14px}
   .card h2{font-size:17px; margin:0 0 12px; display:flex; align-items:center; gap:8px}
+  .favs{display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px; margin:0 -2px; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+  .favs::-webkit-scrollbar{display:none}
+  .fav{flex:none; width:86px; text-align:center; font-size:12px; font-weight:600}
+  .fav .im{width:86px; height:86px; border-radius:20px; background:var(--soft) center/cover; display:flex; align-items:center; justify-content:center; font-size:30px; box-shadow:var(--shadow); margin-bottom:4px}
+  .fav span{display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ringcard{position:relative; padding-top:40px}
   .morebtn{position:absolute; top:12px; right:14px; font-size:13px; font-weight:700; color:var(--muted); background:var(--soft); border-radius:999px; padding:5px 12px}
   .card h2 .more{margin-left:auto; font-size:13px; color:var(--muted); font-weight:500}
@@ -248,7 +253,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20260929-1340';
+var APP_VER='20260929-1409';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -284,6 +289,7 @@ function defaults(s){
   if(!s.uh||typeof s.uh!=='object')s.uh={days:{}};
   if(!s.uh.days)s.uh.days={};
   if(!Array.isArray(s.badges))s.badges=[];
+  if(!Array.isArray(s.favs))s.favs=[];
   if(!s.settings)s.settings={};
   var st=s.settings;
   if(st.waterGoal==null)st.waterGoal=8;
@@ -400,7 +406,7 @@ function viewToday(){
     '</div>'+(catFace()!=='calm'?'<div class="verdict">'+overall(u)+'</div>':'')+
     (u&&u.demo?'<div class="demo">（示範數據：戒指接通之後會自動換真數）</div>':'')+'</section>';
   html+='<button class="snap" data-act="cam"><span class="cam">📷</span><span><b>影低食咗乜</b><span>撳一下影相，Eva 幫你認同計</span></span></button>'+
-    '<div class="snaprow"><button data-act="lib">🖼 揀相</button><button data-act="type">⌨️ 打字</button></div>';
+    '<div class="snaprow"><button data-act="lib">🖼 揀相</button><button data-act="type">⌨️ 打字</button></div>'+favRow();
   var mood=state.moods[t];
   html+='<section class="card"><h2>😊 而家點呀？</h2><div class="moods">'+MOODS.map(function(m,i){return '<button data-act="mood" data-i="'+i+'" class="'+(mood&&mood.e===m[0]?'on':'')+'" aria-label="'+m[1]+'">'+m[0]+'</button>';}).join('')+'</div>'+
     '<div class="moodnote">'+(mood?'已打卡：'+mood.e+' '+mood.label+'（'+mood.time+'）· 想改就再撳過':'揀一個就得，唔使諗')+'</div></section>';
@@ -615,7 +621,7 @@ function closeSheet(){$('sheet').classList.remove('show');$('veil').classList.re
 function head(t){return '<h3>'+t+'<button class="x" data-act="close">✕</button></h3>';}
 
 var draft=null;
-function foodsForAI(){return state.foods.map(function(f){return {id:f.id,name:f.name,aliases:f.aliases||[]};});}
+function foodsForAI(){return state.foods.map(function(f){return {id:f.id,name:f.name,cat:f.cat,aliases:f.aliases||[]};});}
 function itemFrom(fid,g,name,note){
   var f=F()[fid], it={name:name||(f?f.name:''),grams:Math.round(g),foodId:fid||null,note:note||''};
   if(f){var k=g/100;K.forEach(function(q){it[q]=r1((f.per100g[q]||0)*k);});it.src=f.source;}
@@ -674,16 +680,40 @@ function saveDraft(){
   });
   var meal={id:uid(),date:d.date,time:d.time,slot:d.slot,items:items,photo:pid,heart:false};
   if(pid)savePhoto(pid,d.date,d.thumb);
-  mutate(function(s){s.meals.push(meal);});
-  closeSheet(); confetti(); toast('入咗數 ✅ 好嘢！');
+  var favAdded=d.edited?addFav(meal):null;
+  mutate(function(s){s.meals.push(meal);if(favAdded)upsertFav(s,favAdded);});
+  closeSheet(); confetti(); toast(favAdded?'入咗數 ✅ 你改過份量，已記做「常食」⭐':'入咗數 ✅ 好嘢！');
   draft=null;
 }
+/* ---------- ⭐ 常食：改過份量嘅餐自動記低，下次一撳入 ---------- */
+function favSig(items){return items.filter(function(i){return i.foodId;}).map(function(i){return i.foodId;}).sort().join('|');}
+function addFav(meal){
+  var its=meal.items.filter(function(i){return i.foodId;}); if(!its.length)return null;
+  return {id:favSig(its),name:its.slice(0,2).map(function(i){return i.name;}).join('＋')+(its.length>2?'…':''),photo:meal.photo||null,
+    items:its.map(function(i){return {foodId:i.foodId,grams:i.grams,name:i.name};}),uses:0,updated:today()};
+}
+function upsertFav(s,f){s.favs=s.favs.filter(function(x){return x.id!==f.id;});s.favs.unshift(f);s.favs=s.favs.slice(0,12);}
+function useFav(id){
+  var f=state.favs.filter(function(x){return x.id===id;})[0]; if(!f)return;
+  var items=f.items.map(function(i){return itemFrom(F()[i.foodId]?i.foodId:null,i.grams,i.name,'常食');});
+  var meal={id:uid(),date:today(),time:nowT(),slot:slotNow(),items:items,photo:f.photo,heart:false,fav:true};
+  mutate(function(s){s.meals.push(meal);s.favs.forEach(function(x){if(x.id===id){x.uses=(x.uses||0)+1;x.updated=today();}});});
+  confetti(); toast('⭐ '+f.name+' 入咗數！');
+}
+function favRow(){
+  if(!state.favs.length)return '';
+  return '<section class="card"><h2>⭐ 常食（撳一下就入）</h2><div class="favs">'+state.favs.map(function(f){
+    var ph=f.photo&&photos[f.photo];
+    return '<button class="fav" data-act="usefav" data-id="'+esc(f.id)+'"><div class="im" style="'+(ph?'background-image:url('+ph+')':'')+'">'+(ph?'':'🍱')+'</div><span>'+esc(f.name)+'</span></button>';
+  }).join('')+'</div></section>';
+}
+
 function openMeal(id){
   var m=state.meals.filter(function(x){return x.id===id;})[0]; if(!m)return;
   var ph=m.photo&&photos[m.photo], tot=0;
   var h=head(m.slot+' · '+m.time)+(ph?'<img class="preview" src="'+ph+'">':'');
   m.items.forEach(function(it){if(it.kcal)tot+=it.kcal;h+='<div class="row"><div class="nm"><b>'+esc(it.name)+'</b><small>'+(it.grams?it.grams+' g · ':'')+(it.kcal!=null?Math.round(it.kcal)+' kcal':'未有數')+(it.est?'（估算）':'')+'</small></div></div>';});
-  h+='<p class="moodnote">合共大約 '+Math.round(tot)+' kcal</p><div class="btnrow"><button class="btn" data-act="heart" data-id="'+id+'">'+(m.heart?'💔 唔再係最愛':'❤️ 呢餐好開心')+'</button><button class="btn" data-act="mdel" data-id="'+id+'">🗑 刪走</button></div>';
+  h+='<p class="moodnote">合共大約 '+Math.round(tot)+' kcal</p><div class="btnrow" style="margin-bottom:8px"><button class="btn" data-act="favtoggle" data-id="'+id+'">'+(state.favs.some(function(f){return f.id===favSig(m.items);})?'☆ 唔再做常食':'⭐ 設為常食')+'</button></div><div class="btnrow"><button class="btn" data-act="heart" data-id="'+id+'">'+(m.heart?'💔 唔再係最愛':'❤️ 呢餐好開心')+'</button><button class="btn" data-act="mdel" data-id="'+id+'">🗑 刪走</button></div>';
   openSheet(h);
 }
 function openDetail(){
@@ -820,8 +850,8 @@ document.addEventListener('click',function(e){
   else if(a==='mood'){var m=MOODS[i];mutate(function(s){s.moods[today()]={e:m[0],label:m[1],time:nowT()};});b.classList.add('pop');toast(m[0]+' 收到！');}
   else if(a==='water'){var n=+b.getAttribute('data-n'),cur=state.water[today()]||0,v=n===cur?n-1:n;mutate(function(s){s.water[today()]=v;});if(v===state.settings.waterGoal){confetti();toast('💧 今日飲夠水！');}}
   else if(a==='dslot'){draft.slot=b.getAttribute('data-s');showDraft();}
-  else if(a==='g'){draftGrams(i,draft.items[i].grams+(+b.getAttribute('data-d')));showDraft();}
-  else if(a==='drm'){draft.items.splice(i,1);showDraft();}
+  else if(a==='g'){draft.edited=true;draftGrams(i,draft.items[i].grams+(+b.getAttribute('data-d')));showDraft();}
+  else if(a==='drm'){draft.edited=true;draft.items.splice(i,1);showDraft();}
   else if(a==='dsave')saveDraft();
   else if(a==='meal')openMeal(b.getAttribute('data-id'));
   else if(a==='heart'){var id=b.getAttribute('data-id');mutate(function(s){s.meals.forEach(function(m){if(m.id===id)m.heart=!m.heart;});});openMeal(id);}
@@ -836,6 +866,10 @@ document.addEventListener('click',function(e){
   else if(a==='doShare')doShare();
   else if(a==='duoOn'){mutate(function(s){s.settings.duo.sleep=true;});toast('👨‍👧 加入咗！');}
   else if(a==='duoOff'){mutate(function(s){s.settings.duo.sleep=false;});toast('已退出，唔再分享');}
+  else if(a==='usefav')useFav(b.getAttribute('data-id'));
+  else if(a==='favtoggle'){var mid=b.getAttribute('data-id'),mm=state.meals.filter(function(x){return x.id===mid;})[0];if(mm){var sig=favSig(mm.items);
+    if(state.favs.some(function(f){return f.id===sig;})){mutate(function(s){s.favs=s.favs.filter(function(f){return f.id!==sig;});});toast('已移出常食');}
+    else{var nf=addFav(mm);if(nf){mutate(function(s){upsertFav(s,nf);});toast('⭐ 記咗做常食');}else toast('呢餐冇食物庫數字，記唔到做常食');}openMeal(mid);}}
   else if(a==='pet'){b.classList.remove('bounce');void b.offsetWidth;b.classList.add('bounce');toast(['喵喵：喵～ 😽','喵喵：咕嚕咕嚕…','喵喵：再摸多下 🐾','喵喵：今日都要開心！'][Math.floor(Math.random()*4)]);}
   else if(a==='wear'){var id3=b.getAttribute('data-id'),k=b.getAttribute('data-k');mutate(function(s){if(k==='coat')s.settings.catCoat=id3;else s.settings.catAcc=id3;});toast('喵喵換好衫喇 😸');}
   else if(a==='lockedItem'){toast('🔒 完成多啲挑戰，喵喵就有新嘢著');}
@@ -844,7 +878,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('input',function(e){
   var el=e.target,a=el.getAttribute('data-act'),i=+el.getAttribute('data-i');
-  if(a==='gi'){draftGrams(i,+el.value||0);var sm=el.closest('.row').querySelector('small');if(sm)sm.textContent=Math.round(draft.items[i].kcal)+' kcal';}
+  if(a==='gi'){draft.edited=true;draftGrams(i,+el.value||0);var sm=el.closest('.row').querySelector('small');if(sm)sm.textContent=Math.round(draft.items[i].kcal)+' kcal';}
   else if(a==='self'){draft.items[i].selfKcal=+el.value||null;var tot=0;draft.items.forEach(function(it){tot+=it.kcal!=null?it.kcal:(it.selfKcal||0);});var sb=document.querySelector('[data-act=dsave]');if(sb)sb.textContent='✓ 入數（大約 '+Math.round(tot)+' kcal）';}
 });
 $('veil').addEventListener('click',closeSheet);
