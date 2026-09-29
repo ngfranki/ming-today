@@ -180,6 +180,24 @@
   .pop{animation:pop .5s ease}
   @keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
   .syncdot{font-size:12px; color:var(--muted); text-align:center; margin-top:6px}
+  /* 🐱 貓貓 skin */
+  body{background-image:radial-gradient(circle at 20px 20px, rgba(255,122,107,.06) 3px, transparent 4px),radial-gradient(circle at 60px 60px, rgba(155,135,245,.06) 3px, transparent 4px); background-size:80px 80px}
+  .catcard{display:flex; align-items:flex-end; gap:6px; margin:0 0 14px}
+  .catcard .cat{width:118px; flex:none; cursor:pointer}
+  .catcard .cat svg{width:100%; height:auto; display:block; filter:drop-shadow(0 8px 12px rgba(46,42,59,.12))}
+  .catcard .cat.bounce svg{animation:bounce .6s ease}
+  @keyframes bounce{30%{transform:translateY(-14px) rotate(-4deg)}60%{transform:translateY(0)}80%{transform:translateY(-5px)}}
+  .bubble{position:relative; flex:1; background:var(--card); border-radius:22px; padding:14px 16px; font-weight:600; font-size:16px; box-shadow:var(--shadow); margin-bottom:34px}
+  .bubble:after{content:''; position:absolute; left:-9px; bottom:18px; border:10px solid transparent; border-right-color:var(--card); border-left:0}
+  .bubble small{display:block; font-weight:500; font-size:12px; color:var(--muted); margin-top:4px}
+  .locker{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+  .lk{background:var(--soft); border-radius:20px; padding:8px 4px 10px; text-align:center; position:relative}
+  .lk svg{width:74px; height:auto}
+  .lk b{display:block; font-size:13px}
+  .lk small{font-size:11px; color:var(--muted)}
+  .lk.locked svg{filter:grayscale(1) opacity(.35)}
+  .lk.on{background:var(--lav-soft); box-shadow:0 0 0 3px var(--lav)}
+  .lk .lock{position:absolute; top:6px; right:8px; font-size:14px}
   .sharebig{width:100%; border-radius:20px; display:block; margin-bottom:12px; box-shadow:var(--shadow)}
 </style>
 </head>
@@ -224,7 +242,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20260929-1314';
+var APP_VER='20260929-1324';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -369,11 +387,11 @@ function render(){
 function viewToday(){
   var t=today(), u=uh(t), tt=totals(t), s=state.settings;
   var rec=band(u&&u.recovery,RL.rec), slp=band(u&&u.sleepScore,RL.slp), act=band(u&&u.movement,RL.act);
-  var html='<section class="card"><div class="rings">'+
+  var html=catCard(u)+'<section class="card"><div class="rings">'+
     ringBox(u&&u.recovery,rec,'恢復','#FF7A6B','var(--coral-soft)')+
     ringBox(u&&u.sleepScore,slp,'睡眠','#9B87F5','var(--lav-soft)')+
     ringBox(u&&u.movement,act,'活動','#4FBDEB','var(--sky-soft)')+
-    '</div><div class="verdict">'+overall(u)+'</div>'+
+    '</div>'+(catFace()!=='calm'?'<div class="verdict">'+overall(u)+'</div>':'')+
     (u&&u.demo?'<div class="demo">（示範數據：戒指接通之後會自動換真數）</div>':'')+'</section>';
   html+='<button class="snap" data-act="cam"><span class="cam">📷</span><span><b>影低食咗乜</b><span>撳一下影相，Eva 幫你認同計</span></span></button>'+
     '<div class="snaprow"><button data-act="lib">🖼 揀相</button><button data-act="type">⌨️ 打字</button></div>';
@@ -414,6 +432,73 @@ function viewWall(){
   return h;
 }
 
+/* ---------- 🐱 貓貓 skin＋解鎖 ---------- */
+var COATS={ginger:{n:'橘貓',body:'#F7A55B',stripe:'#E07F2F',belly:'#FFE3C4'},grey:{n:'灰貓',body:'#A9A6B8',stripe:'#85819A',belly:'#EDEAF5'},black:{n:'黑貓',body:'#3C3848',stripe:'#2A2733',belly:'#5A5468'},calico:{n:'三色貓',body:'#FFF6EA',stripe:'#F2A35E',belly:'#FFFFFF',patch:'#4A4453'},cream:{n:'忌廉貓',body:'#F6E3C6',stripe:'#E6C79D',belly:'#FFF8EC'}};
+// 解鎖：按累積徽章數（完成挑戰先有徽章）
+var UNLOCKS=[
+  {id:'none',kind:'acc',n:'冇配飾',need:0},
+  {id:'ginger',kind:'coat',n:'橘貓',need:0},
+  {id:'bow',kind:'acc',n:'蝴蝶結',need:1},
+  {id:'grey',kind:'coat',n:'灰貓',need:2},
+  {id:'scarf',kind:'acc',n:'頸巾',need:3},
+  {id:'party',kind:'acc',n:'派對帽',need:4},
+  {id:'black',kind:'coat',n:'黑貓',need:5},
+  {id:'glasses',kind:'acc',n:'太陽眼鏡',need:6},
+  {id:'flower',kind:'acc',n:'花環',need:8},
+  {id:'calico',kind:'coat',n:'三色貓',need:10},
+  {id:'cream',kind:'coat',n:'忌廉貓',need:12},
+  {id:'crown',kind:'acc',n:'皇冠',need:15}
+];
+function unlocked(u){return state.badges.length>=u.need;}
+function catFace(){var m=state.moods[today()];if(!m)return 'calm';return m.e==='😆'||m.e==='😊'?'happy':m.e==='😴'?'sleepy':m.e==='😣'?'sad':'calm';}
+function catSVG(coat,acc,face){
+  var c=COATS[coat]||COATS.ginger, dark=coat==='black', eyeCol=dark?'#FFE27A':'#2E2A3B', line=dark?'#1E1B26':'#2E2A3B';
+  var eyes={happy:'<path d="M44 66 q6 -7 12 0 M74 66 q6 -7 12 0" stroke="'+eyeCol+'" stroke-width="4" fill="none" stroke-linecap="round"/>',
+    sleepy:'<path d="M44 66 h12 M74 66 h12" stroke="'+eyeCol+'" stroke-width="4" stroke-linecap="round"/><text x="98" y="40" font-size="14" fill="#9B87F5" font-weight="700">z</text><text x="106" y="30" font-size="10" fill="#9B87F5" font-weight="700">z</text>',
+    sad:'<circle cx="50" cy="66" r="6" fill="'+eyeCol+'"/><circle cx="80" cy="66" r="6" fill="'+eyeCol+'"/><path d="M42 56 l12 4 M88 56 l-12 4" stroke="'+eyeCol+'" stroke-width="3" stroke-linecap="round"/>',
+    calm:'<ellipse cx="50" cy="66" rx="6" ry="7" fill="'+eyeCol+'"/><ellipse cx="80" cy="66" rx="6" ry="7" fill="'+eyeCol+'"/><circle cx="52" cy="63" r="2" fill="#fff"/><circle cx="82" cy="63" r="2" fill="#fff"/>'}[face]||'';
+  var mouth=face==='sad'?'<path d="M59 84 q6 -5 12 0" stroke="'+line+'" stroke-width="3" fill="none" stroke-linecap="round"/>':'<path d="M58 80 q7 7 7 0 q0 7 7 0" stroke="'+line+'" stroke-width="3" fill="none" stroke-linecap="round"/>';
+  var A={
+    bow:'<g transform="translate(88 30) rotate(15)"><path d="M0 0 l-14 -9 v18z M0 0 l14 -9 v18z" fill="#FF8FBF"/><circle r="4.5" fill="#FF6FA8"/></g>',
+    scarf:'<path d="M34 98 q31 14 62 0 v10 q-31 14 -62 0z" fill="#FF7A6B"/><rect x="80" y="104" width="10" height="22" rx="4" fill="#FF7A6B"/>',
+    party:'<g transform="translate(65 8)"><path d="M-14 22 L0 -16 L14 22z" fill="#9B87F5"/><path d="M-9 8 h18 M-5 -3 h10" stroke="#FFB940" stroke-width="3"/><circle cy="-18" r="5" fill="#FFB940"/></g>',
+    glasses:'<g><rect x="38" y="58" width="24" height="16" rx="6" fill="#2E2A3B"/><rect x="68" y="58" width="24" height="16" rx="6" fill="#2E2A3B"/><path d="M62 64 h6" stroke="#2E2A3B" stroke-width="3"/><path d="M42 61 l6 0" stroke="#fff" stroke-width="2" opacity=".6"/></g>',
+    flower:'<g>'+[30,48,65,82,100].map(function(x,i){var y=34-Math.sin((x-30)/70*Math.PI)*10;return '<circle cx="'+x+'" cy="'+y+'" r="7" fill="'+['#FF8FBF','#FFB940','#FF7A6B','#9B87F5','#4FBDEB'][i]+'"/><circle cx="'+x+'" cy="'+y+'" r="2.5" fill="#fff"/>';}).join('')+'</g>',
+    crown:'<g transform="translate(65 16)"><path d="M-20 10 L-20 -8 L-10 2 L0 -12 L10 2 L20 -8 L20 10z" fill="#FFC53D" stroke="#E0A020" stroke-width="2"/><circle cy="-12" r="3" fill="#FF7A6B"/></g>'
+  };
+  var patch=c.patch?'<path d="M30 40 q10 -8 22 2 q-4 14 -20 12z" fill="'+c.patch+'"/><path d="M88 74 q12 -6 16 8 q-8 8 -16 0z" fill="'+c.stripe+'"/>':'<path d="M58 30 q7 6 0 12 M65 28 v14 M72 30 q-7 6 0 12" stroke="'+c.stripe+'" stroke-width="4" fill="none" stroke-linecap="round"/>';
+  return '<svg viewBox="0 0 130 140" xmlns="http://www.w3.org/2000/svg">'+
+    '<path d="M100 118 q26 -6 20 -34" stroke="'+c.body+'" stroke-width="12" fill="none" stroke-linecap="round"/>'+
+    '<ellipse cx="65" cy="112" rx="38" ry="24" fill="'+c.body+'"/><ellipse cx="65" cy="116" rx="22" ry="15" fill="'+c.belly+'"/>'+
+    '<path d="M24 50 L30 12 L54 34z" fill="'+c.body+'"/><path d="M106 50 L100 12 L76 34z" fill="'+c.body+'"/>'+
+    '<path d="M31 42 L34 22 L46 34z" fill="#FFB3C7"/><path d="M99 42 L96 22 L84 34z" fill="#FFB3C7"/>'+
+    '<ellipse cx="65" cy="66" rx="44" ry="38" fill="'+c.body+'"/>'+patch+
+    '<ellipse cx="65" cy="80" rx="20" ry="13" fill="'+c.belly+'"/>'+eyes+
+    '<path d="M61 74 h8 l-4 5z" fill="#FF8FA3"/>'+mouth+
+    '<circle cx="38" cy="80" r="6" fill="#FF9EB5" opacity=".45"/><circle cx="92" cy="80" r="6" fill="#FF9EB5" opacity=".45"/>'+
+    '<path d="M20 74 h14 M20 82 l14 -3 M110 74 h-14 M110 82 l-14 -3" stroke="'+line+'" stroke-width="2" stroke-linecap="round" opacity=".5"/>'+
+    '<ellipse cx="48" cy="130" rx="10" ry="7" fill="'+c.body+'"/><ellipse cx="82" cy="130" rx="10" ry="7" fill="'+c.body+'"/>'+
+    (A[acc]||'')+'</svg>';
+}
+function myCat(){var s=state.settings;var coat=s.catCoat||'ginger',acc=s.catAcc||'none';
+  UNLOCKS.forEach(function(u){if(!unlocked(u)){if(u.id===coat)coat='ginger';if(u.id===acc)acc='none';}});return {coat:coat,acc:acc};}
+var CATSAY={happy:'喵～你今日心情好靚，我都開心 😸',sleepy:'喵…我哋今晚一齊早啲瞓好唔好？😴',sad:'喵，攰就抖下，我陪你 🫶',calm:''};
+function catCard(u){
+  var c=myCat(), f=catFace(), say=CATSAY[f]||overall(u);
+  var next=UNLOCKS.filter(function(x){return !unlocked(x);})[0];
+  return '<div class="catcard"><div class="cat" data-act="pet">'+catSVG(c.coat,c.acc,f)+'</div><div class="bubble">'+say+
+    (next?'<small>🐾 再攞 '+(next.need-state.badges.length)+' 個徽章就解鎖「'+next.n+'」</small>':'<small>🐾 全部解鎖晒，你係貓貓大師！</small>')+'</div></div>';
+}
+function viewLocker(){
+  var c=myCat(), h='<section class="card"><h2>🎁 貓貓解鎖櫃 <span class="more">'+state.badges.length+' 個徽章</span></h2><div class="locker">';
+  UNLOCKS.forEach(function(x){
+    var ok=unlocked(x), on=(x.kind==='coat'?c.coat:c.acc)===x.id;
+    var svg=x.kind==='coat'?catSVG(x.id,'none','calm'):catSVG(c.coat,x.id,'calm');
+    h+='<button class="lk'+(ok?'':' locked')+(on?' on':'')+'" data-act="'+(ok?'wear':'lockedItem')+'" data-id="'+x.id+'" data-k="'+x.kind+'">'+(ok?'':'<span class="lock">🔒</span>')+svg+'<b>'+x.n+'</b><small>'+(ok?(on?'著緊':'撳一下換'):'要 '+x.need+' 個徽章')+'</small></button>';
+  });
+  return h+'</div><p class="moodnote">完成小挑戰攞徽章，徽章愈多解鎖愈多 🐾</p></section>';
+}
+
 /* ---------- challenges ---------- */
 var CH=[
   {id:'sleep7',ic:'🌙',name:'7 晚瞓夠 7 個鐘',goal:7,type:'run',test:function(d){var h=sleepH(d);return h!=null&&h>=state.settings.sleepGoalH;}},
@@ -433,7 +518,9 @@ function checkBadges(){
     var key=c.id+':'+p.period;
     if(state.badges.some(function(b){return b.key===key;}))return;
     mutate(function(s){if(!s.badges.some(function(b){return b.key===key;}))s.badges.push({key:key,id:c.id,ic:c.ic,name:c.name,date:today()});});
+    var n=state.badges.length, un=UNLOCKS.filter(function(x){return x.need===n&&n>0;});
     setTimeout(function(){confetti();toast(c.ic+' 挑戰完成：'+c.name+'！');},200);
+    if(un.length)setTimeout(function(){confetti();toast('🎁 解鎖咗：'+un.map(function(x){return x.n;}).join('、')+'！去「挑戰」頁換裝');},2600);
   });
 }
 function viewFun(){
@@ -448,7 +535,7 @@ function viewFun(){
   if(state.badges.length){h+='<div class="badges">'+state.badges.slice().reverse().slice(0,12).map(function(b){return '<div class="badge"><span>'+b.ic+'</span><small>'+(+b.date.slice(5,7))+'/'+(+b.date.slice(8))+'</small></div>';}).join('')+'</div>';}
   else h+='<div class="empty">完成第一個挑戰就有第一個徽章 ✨</div>';
   h+='</section>';
-  h+=viewHighlights()+viewMoodSleep()+viewDuo();
+  h+=viewLocker()+viewHighlights()+viewMoodSleep()+viewDuo();
   return h;
 }
 function viewHighlights(){
@@ -619,8 +706,11 @@ function makeCard(){
   ring(300,1000,95,u.recovery,'#FF7A6B','恢復');
   ring(780,1000,95,u.movement,'#4FBDEB','活動');
   var mood=state.moods[t];
-  g.font='120px '+FN;g.fillText(mood?mood.e:'',W/2,1045);
-  return Promise.all(ms.map(function(m){return loadImg(photos[m.photo]);})).then(function(ims){
+  var cc=myCat();
+  var catUrl='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(catSVG(cc.coat,cc.acc,catFace()));
+  return Promise.all([loadImg(catUrl)].concat(ms.map(function(m){return loadImg(photos[m.photo]);}))).then(function(all){
+    var cat=all[0], ims=all.slice(1);
+    if(cat)g.drawImage(cat,W/2-110,900,220,237);
     ims=ims.filter(Boolean);
     var top=1200,size=ims.length<=1?560:420,gap=24,cols=ims.length<=1?1:2;
     var x0=(W-(cols*size+(cols-1)*gap))/2;
@@ -722,6 +812,9 @@ document.addEventListener('click',function(e){
   else if(a==='doShare')doShare();
   else if(a==='duoOn'){mutate(function(s){s.settings.duo.sleep=true;});toast('👨‍👧 加入咗！');}
   else if(a==='duoOff'){mutate(function(s){s.settings.duo.sleep=false;});toast('已退出，唔再分享');}
+  else if(a==='pet'){b.classList.remove('bounce');void b.offsetWidth;b.classList.add('bounce');toast(['喵～ 😽','咕嚕咕嚕…','再摸多下 🐾','喵！今日都要開心'][Math.floor(Math.random()*4)]);}
+  else if(a==='wear'){var id3=b.getAttribute('data-id'),k=b.getAttribute('data-k');mutate(function(s){if(k==='coat')s.settings.catCoat=id3;else s.settings.catAcc=id3;});toast('換好喇 😸');}
+  else if(a==='lockedItem'){toast('🔒 完成多啲挑戰就解鎖到');}
   else if(a==='chatPic')$('chatIn').click();
   else if(a==='chatSend')chatSend();
 });
@@ -753,6 +846,8 @@ function demoState(){
   s.meals.push({id:'dm0',date:t,time:'08:30',slot:'早',items:[{name:'乳酪',grams:150,kcal:90,protein:15,carb:6,fat:0,fiber:0,emoji:'🥣'}]});
   s.meals.push({id:'dm00',date:t,time:'13:10',slot:'午',items:[{name:'叉燒飯',grams:400,kcal:620,protein:28,carb:88,fat:17,fiber:2,emoji:'🍱'}]});
   s.uh.lastSync=new Date().toISOString();
+  for(var j=0;j<5;j++)s.badges.push({key:'demo'+j,id:'mood7',ic:['😊','📸','💧','🌙','👟'][j],name:'示範',date:shift(t,-j*3)});
+  s.settings.catAcc='bow';
   return s;
 }
 function boot(){
