@@ -43,6 +43,8 @@
 
   .card{background:var(--card); border-radius:26px; box-shadow:var(--shadow); padding:18px; margin-bottom:14px}
   .card h2{font-size:17px; margin:0 0 12px; display:flex; align-items:center; gap:8px}
+  .ringcard{position:relative; padding-top:40px}
+  .morebtn{position:absolute; top:12px; right:14px; font-size:13px; font-weight:700; color:var(--muted); background:var(--soft); border-radius:999px; padding:5px 12px}
   .card h2 .more{margin-left:auto; font-size:13px; color:var(--muted); font-weight:500}
 
   /* three big rings */
@@ -246,7 +248,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20260929-1338';
+var APP_VER='20260929-1340';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -391,7 +393,7 @@ function render(){
 function viewToday(){
   var t=today(), u=uh(t), tt=totals(t), s=state.settings;
   var rec=band(u&&u.recovery,RL.rec), slp=band(u&&u.sleepScore,RL.slp), act=band(u&&u.movement,RL.act);
-  var html=catCard(u)+'<section class="card"><div class="rings">'+
+  var html=catCard(u)+'<section class="card ringcard"><button class="morebtn" data-act="detail">詳細 ›</button><div class="rings">'+
     ringBox(u&&u.recovery,rec,'恢復','#FF7A6B','var(--coral-soft)')+
     ringBox(u&&u.sleepScore,slp,'睡眠','#9B87F5','var(--lav-soft)')+
     ringBox(u&&u.movement,act,'活動','#4FBDEB','var(--sky-soft)')+
@@ -407,7 +409,7 @@ function viewToday(){
   for(var i=0;i<Math.max(wg,w);i++)html+='<button data-act="water" data-n="'+(i+1)+'" class="'+(i<w?'on':'')+'">💧</button>';
   html+='</div></section>';
   var ms=mealsOn(t);
-  html+='<section class="card"><h2>🍽 今日食咗 <span class="more" data-act="detail">詳細 ›</span></h2>'+(ms.length?photoGrid(ms):'<div class="empty">仲未記錄，食嘢前影張相就得 📷</div>');
+  html+='<section class="card"><h2>🍽 今日食咗</h2>'+(ms.length?photoGrid(ms):'<div class="empty">仲未記錄，食嘢前影張相就得 📷</div>');
   if(ms.length){
     var line='大約 <b>'+tt.kcal+'</b> kcal';
     if(s.dailyKcal){var left=s.dailyKcal-tt.kcal;line+=left>=0?' · 仲有 '+left+' 任你揀 😋':' · 今日食得豐富，聽日再嚟 😉';}
