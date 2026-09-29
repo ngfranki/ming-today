@@ -242,7 +242,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20260929-1328';
+var APP_VER='20260929-1330';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -435,7 +435,7 @@ function viewWall(){
 /* ---------- 🐱 貓貓 skin＋解鎖 ---------- */
 var COATS={
   // 預設＝屋企隻橘貓（2026-09-29 Franki 影相）：橘虎斑、白嘴白下巴、白心口、四隻白襪、間條尾、綠金色眼、啡粉紅鼻
-  home:{n:'屋企橘貓',body:'#F2A45C',stripe:'#D9803A',belly:'#FFF7EE',muzzle:'#FFF7EE',bib:true,socks:true,tail:true,iris:'#B8B04A',nose:'#D98A7A',brow:true},
+  home:{n:'喵喵',body:'#F2A45C',stripe:'#D9803A',belly:'#FFF7EE',muzzle:'#FFF7EE',bib:true,socks:true,tail:true,iris:'#B8B04A',nose:'#D98A7A',brow:true},
   grey:{n:'灰貓',body:'#A9A6B8',stripe:'#85819A',belly:'#EDEAF5',iris:'#6FB6A0'},
   black:{n:'黑貓',body:'#3C3848',stripe:'#2A2733',belly:'#5A5468',iris:'#FFD54A'},
   calico:{n:'三色貓',body:'#FFF6EA',stripe:'#F2A35E',belly:'#FFFFFF',patch:'#4A4453',iris:'#8FB86A'},
@@ -444,7 +444,7 @@ COATS.ginger=COATS.home;
 // 解鎖：按累積徽章數（完成挑戰先有徽章）
 var UNLOCKS=[
   {id:'none',kind:'acc',n:'冇配飾',need:0},
-  {id:'home',kind:'coat',n:'屋企橘貓',need:0},
+  {id:'home',kind:'coat',n:'喵喵（原裝）',need:0},
   {id:'bow',kind:'acc',n:'蝴蝶結',need:1},
   {id:'grey',kind:'coat',n:'灰貓',need:2},
   {id:'scarf',kind:'acc',n:'頸巾',need:3},
@@ -500,15 +500,15 @@ function catSVG(coat,acc,face){
 }
 function myCat(){var s=state.settings;var coat=s.catCoat||'home',acc=s.catAcc||'none';
   UNLOCKS.forEach(function(u){if(!unlocked(u)){if(u.id===coat)coat='home';if(u.id===acc)acc='none';}});return {coat:coat,acc:acc};}
-var CATSAY={happy:'喵～你今日心情好靚，我都開心 😸',sleepy:'喵…我哋今晚一齊早啲瞓好唔好？😴',sad:'喵，攰就抖下，我陪你 🫶',calm:''};
+var CATSAY={happy:'喵～你今日心情好靚，喵喵都開心 😸',sleepy:'喵…今晚同喵喵一齊早啲瞓好唔好？😴',sad:'喵，攰就抖下，喵喵陪你 🫶',calm:''};
 function catCard(u){
-  var c=myCat(), f=catFace(), say=CATSAY[f]||overall(u);
+  var c=myCat(), f=catFace(), say=CATSAY[f]||('喵喵話：'+overall(u));
   var next=UNLOCKS.filter(function(x){return !unlocked(x);})[0];
   return '<div class="catcard"><div class="cat" data-act="pet">'+catSVG(c.coat,c.acc,f)+'</div><div class="bubble">'+say+
-    (next?'<small>🐾 再攞 '+(next.need-state.badges.length)+' 個徽章就解鎖「'+next.n+'」</small>':'<small>🐾 全部解鎖晒，你係貓貓大師！</small>')+'</div></div>';
+    (next?'<small>🐾 再攞 '+(next.need-state.badges.length)+' 個徽章，喵喵就解鎖「'+next.n+'」</small>':'<small>🐾 喵喵全套解鎖晒，你係貓貓大師！</small>')+'</div></div>';
 }
 function viewLocker(){
-  var c=myCat(), h='<section class="card"><h2>🎁 貓貓解鎖櫃 <span class="more">'+state.badges.length+' 個徽章</span></h2><div class="locker">';
+  var c=myCat(), h='<section class="card"><h2>🎁 喵喵衣櫃 <span class="more">'+state.badges.length+' 個徽章</span></h2><div class="locker">';
   UNLOCKS.forEach(function(x){
     var ok=unlocked(x), on=(x.kind==='coat'?c.coat:c.acc)===x.id;
     var svg=x.kind==='coat'?catSVG(x.id,'none','calm'):catSVG(c.coat,x.id,'calm');
@@ -538,7 +538,7 @@ function checkBadges(){
     mutate(function(s){if(!s.badges.some(function(b){return b.key===key;}))s.badges.push({key:key,id:c.id,ic:c.ic,name:c.name,date:today()});});
     var n=state.badges.length, un=UNLOCKS.filter(function(x){return x.need===n&&n>0;});
     setTimeout(function(){confetti();toast(c.ic+' 挑戰完成：'+c.name+'！');},200);
-    if(un.length)setTimeout(function(){confetti();toast('🎁 解鎖咗：'+un.map(function(x){return x.n;}).join('、')+'！去「挑戰」頁換裝');},2600);
+    if(un.length)setTimeout(function(){confetti();toast('🎁 喵喵解鎖咗：'+un.map(function(x){return x.n;}).join('、')+'！去「挑戰」頁換裝');},2600);
   });
 }
 function viewFun(){
@@ -738,7 +738,7 @@ function makeCard(){
       var s=Math.max(size/im.width,size/im.height);g.drawImage(im,x+(size-im.width*s)/2,y+(size-im.height*s)/2,im.width*s,im.height*s);g.restore();
     });
     if(!ims.length){g.font='600 44px '+FN;g.fillStyle='#8C8599';g.fillText('今日未影食物相 📷',W/2,1400);}
-    g.font='500 32px '+FN;g.fillStyle='#8C8599';g.fillText('我嘅今日 · Ming 今日',W/2,H-70);
+    g.font='500 32px '+FN;g.fillStyle='#8C8599';g.fillText('我同喵喵嘅今日 · Ming 今日',W/2,H-70);
     return c;
   });
 }
@@ -830,9 +830,9 @@ document.addEventListener('click',function(e){
   else if(a==='doShare')doShare();
   else if(a==='duoOn'){mutate(function(s){s.settings.duo.sleep=true;});toast('👨‍👧 加入咗！');}
   else if(a==='duoOff'){mutate(function(s){s.settings.duo.sleep=false;});toast('已退出，唔再分享');}
-  else if(a==='pet'){b.classList.remove('bounce');void b.offsetWidth;b.classList.add('bounce');toast(['喵～ 😽','咕嚕咕嚕…','再摸多下 🐾','喵！今日都要開心'][Math.floor(Math.random()*4)]);}
-  else if(a==='wear'){var id3=b.getAttribute('data-id'),k=b.getAttribute('data-k');mutate(function(s){if(k==='coat')s.settings.catCoat=id3;else s.settings.catAcc=id3;});toast('換好喇 😸');}
-  else if(a==='lockedItem'){toast('🔒 完成多啲挑戰就解鎖到');}
+  else if(a==='pet'){b.classList.remove('bounce');void b.offsetWidth;b.classList.add('bounce');toast(['喵喵：喵～ 😽','喵喵：咕嚕咕嚕…','喵喵：再摸多下 🐾','喵喵：今日都要開心！'][Math.floor(Math.random()*4)]);}
+  else if(a==='wear'){var id3=b.getAttribute('data-id'),k=b.getAttribute('data-k');mutate(function(s){if(k==='coat')s.settings.catCoat=id3;else s.settings.catAcc=id3;});toast('喵喵換好衫喇 😸');}
+  else if(a==='lockedItem'){toast('🔒 完成多啲挑戰，喵喵就有新嘢著');}
   else if(a==='chatPic')$('chatIn').click();
   else if(a==='chatSend')chatSend();
 });
