@@ -128,7 +128,7 @@
   /* sheet */
   .veil{position:fixed; inset:0; background:rgba(20,16,30,.4); opacity:0; pointer-events:none; transition:opacity .2s; z-index:30}
   .veil.show{opacity:1; pointer-events:auto}
-  .sheet{position:fixed; left:50%; bottom:0; width:100%; max-width:480px; transform:translate(-50%,105%); transition:transform .25s ease; background:var(--bg); border-radius:28px 28px 0 0; padding:18px 16px calc(22px + env(safe-area-inset-bottom)); max-height:88vh; overflow-y:auto; z-index:31}
+  .sheet{position:fixed; left:50%; bottom:0; width:100%; max-width:480px; transform:translate(-50%,105%); transition:transform .25s ease; background:var(--bg); border-radius:28px 28px 0 0; padding:18px 16px calc(22px + env(safe-area-inset-bottom)); max-height:88vh; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; z-index:31}
   .sheet.show{transform:translate(-50%,0)}
   .sheet h3{margin:0 0 12px; font-size:19px; display:flex; align-items:center}
   .sheet h3 .x{margin-left:auto; width:34px; height:34px; border-radius:50%; background:var(--soft); font-size:16px}
@@ -154,7 +154,11 @@
   .detail td{padding:7px 4px; border-bottom:1px solid var(--line)}
   .detail td:last-child{text-align:right; font-variant-numeric:tabular-nums}
   .detail h4{margin:16px 0 6px; font-size:14px; color:var(--muted)}
-  .src{font-size:11px; color:var(--muted)}
+  .src{font-size:11px; color:var(--muted); overflow-wrap:anywhere}
+  .sheet input,.sheet textarea{min-width:0; max-width:100%}
+  .bodyrow{display:flex; gap:8px; margin-top:12px}
+  .bodyrow input{flex:1 1 0; width:0; min-width:0; border:1px solid var(--line); border-radius:14px; padding:10px; background:var(--card)}
+  .bodyrow button{flex:none; padding:10px 16px}
 
   /* chat */
   .msgs{display:flex; flex-direction:column; gap:8px; min-height:180px; max-height:52vh; overflow-y:auto; padding:4px 0 10px}
@@ -242,7 +246,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20260929-1335';
+var APP_VER='20260929-1338';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -689,7 +693,7 @@ function openDetail(){
   h+='<h4>身體</h4><table>'+row('靜息心率',u.rhr!=null?u.rhr+' bpm':null)+row('HRV',u.hrv!=null?u.hrv+' ms':null)+row('血氧',u.spo2!=null?u.spo2+'%':null)+row('皮膚溫度',u.skinTemp!=null?u.skinTemp+' °C':null)+row('步數',u.steps)+row('活動分鐘',u.activeMin)+'</table>';
   var wk=Object.keys(state.weights).sort().pop(), bk=Object.keys(state.bf).sort().pop();
   h+='<h4>體重・體脂（想記先記）</h4><table>'+row('最近體重',wk?state.weights[wk]+' kg（'+wk.slice(5)+'）':null)+row('目標體重',s.goalKg?s.goalKg+' kg':null)+row('最近體脂',bk?state.bf[bk]+'%（'+bk.slice(5)+'）':null)+row('目標體脂',s.goalBf?s.goalBf+'%':null)+'</table>';
-  h+='<div class="btnrow" style="margin-top:12px"><input id="inW" type="number" step="0.1" inputmode="decimal" placeholder="體重 kg" style="flex:1;border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--card)"><input id="inB" type="number" step="0.1" inputmode="decimal" placeholder="體脂 %" style="flex:1;border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--card)"><button class="btn primary" style="flex:none;padding:10px 16px" data-act="saveBody">記</button></div>';
+  h+='<div class="bodyrow"><input id="inW" type="number" step="0.1" inputmode="decimal" placeholder="體重 kg"><input id="inB" type="number" step="0.1" inputmode="decimal" placeholder="體脂 %"><button class="btn primary" data-act="saveBody">記</button></div>';
   h+='<p class="src">食物數字出處：'+esc(Array.from(new Set(mealsOn(t).reduce(function(a,m){return a.concat(m.items.map(function(i){return (i.src||'').split('：')[0];}));},[]).filter(Boolean))).join('；')||'–')+'</p>';
   openSheet(h+'</div>');
 }
