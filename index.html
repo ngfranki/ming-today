@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Ming 今日</title>
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="manifest" href="manifest.json?v=miu-20261001">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-miu-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-miu-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -348,7 +349,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20261001-1906';
+var APP_VER='20261001-1927';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -1559,15 +1560,39 @@ function openDetail(){
   h+='<p class="src">食物數字出處：'+esc(Array.from(new Set(mealsOn(t).reduce(function(a,m){return a.concat(m.items.map(function(i){return (i.src||'').split('：')[0];}));},[]).filter(Boolean))).join('；')||'–')+'</p>';
   openSheet(h+'</div>');
 }
+var settingsUpdateSnapshot='';
+function settingsFormSnapshot(){return JSON.stringify(['sName','sKcal','sProt','sWater','sSleep','sGoalKg','sGoalBf'].map(function(id){return $(id)?$(id).value:null;}));}
 function openSettings(){
   var s=state.settings;
   function f(id,label,v,ph){return '<label class="field"><span>'+label+'</span><input id="'+id+'" type="number" inputmode="decimal" value="'+(v==null?'':v)+'" placeholder="'+(ph||'留空＝唔設')+'"></label>';}
-  openSheet(head('⚙️ 設定')+'<label class="field"><span>點稱呼你</span><input id="sName" value="'+esc(s.name||'曉明')+'"></label>'+
+  openSheet(head('⚙️ 設定')+'<section style="padding:14px;border-radius:18px;background:var(--lav-soft);margin-bottom:18px"><button id="updateAppButton" class="btn fun" style="width:100%;min-height:46px" data-act="updateApp">🔄 更新 App</button><p id="updateAppStatus" role="status" aria-live="polite" style="margin:10px 0 0;font-size:13px;line-height:1.6">目前版本 '+APP_VER+' · 按一下載入最新版本，保留登入及已儲存記錄。</p></section><label class="field"><span>點稱呼你</span><input id="sName" value="'+esc(s.name||'曉明')+'"></label>'+
     f('sKcal','每日熱量目標（kcal）',s.dailyKcal)+f('sProt','蛋白質目標（g）',s.proteinTarget)+f('sWater','每日飲水（杯）',s.waterGoal,'8')+f('sSleep','睡眠目標（小時）',s.sleepGoalH,'7')+
     f('sGoalKg','目標體重（kg）',s.goalKg)+f('sGoalBf','目標體脂（%）',s.goalBf)+
     '<button class="btn primary" style="width:100%" data-act="saveSet">儲存</button>'+
     '<p class="moodnote">戒指同步：'+(state.uh.lastSync?state.uh.lastSync.replace('T',' ').slice(0,16):'未同步')+' · 版本 '+APP_VER+'</p>'+
     '<button class="btn" style="width:100%;margin-top:6px" data-act="logout">登出（換暗號）</button>');
+  settingsUpdateSnapshot=settingsFormSnapshot();
+}
+
+
+function updateAppNow(){
+  var button=$('updateAppButton'),status=$('updateAppStatus');
+  if(!button||!status||button.disabled)return;
+  function blocked(){
+    if(saving||pending.length){status.textContent='還有記錄正在儲存，或等待連線。請待頁底顯示已儲存後，再按更新。';return true;}
+    if(settingsFormSnapshot()!==settingsUpdateSnapshot){status.textContent='設定有未儲存的修改。請先按下方「儲存」，再重新打開設定更新 App。';return true;}
+    return false;
+  }
+  if(blocked())return;
+  button.disabled=true;button.textContent='正在檢查更新…';status.textContent='正在連線取得最新版本，請稍候。';
+  var url=new URL(location.href);url.searchParams.set('v',String(Date.now()));
+  var ctrl=new AbortController(),timer=setTimeout(function(){ctrl.abort();},12000);
+  fetch(url.href,{cache:'no-store',signal:ctrl.signal}).then(function(r){if(!r.ok)throw new Error('network');return r.text();}).then(function(html){
+    if(!/var APP_VER='[^']+'/.test(html)||html.indexOf('id="main"')<0)throw new Error('invalid app');
+    if(!button.isConnected||!$('sheet').classList.contains('show')||blocked())return;
+    status.textContent='已取得最新版本，正在重新載入…';
+    location.replace(url.href);
+  }).catch(function(){if(status.isConnected)status.textContent='暫時未能更新。請檢查網絡後再按一次；目前的記錄及遊戲進度會保留。';}).finally(function(){clearTimeout(timer);if(button.isConnected){button.disabled=false;button.textContent='🔄 更新 App';}});
 }
 
 /* ---------- share card ---------- */
@@ -1788,6 +1813,7 @@ document.addEventListener('click',function(e){
   else if(a==='detail')openDetail();
   else if(a==='saveBody'){var w=parseFloat($('inW').value),bf=parseFloat($('inB').value);if(!w&&!bf)return;mutate(function(s){if(w)s.weights[today()]=w;if(bf)s.bf[today()]=bf;});toast('記低咗 ✅');openDetail();}
   else if(a==='settings')openSettings();
+  else if(a==='updateApp')updateAppNow();
   else if(a==='saveSet'){var num=function(id){var v=parseFloat($(id).value);return isNaN(v)?null:v;};
     mutate(function(s){var t=s.settings;t.name=$('sName').value.trim()||'曉明';t.dailyKcal=num('sKcal');t.proteinTarget=num('sProt');t.waterGoal=num('sWater')||8;t.sleepGoalH=num('sSleep')||7;t.goalKg=num('sGoalKg');t.goalBf=num('sGoalBf');});closeSheet();toast('儲存咗 ✅');}
   else if(a==='logout'){try{localStorage.removeItem('mingKey');localStorage.removeItem('mingCache');}catch(x){}location.reload();}
@@ -1865,7 +1891,7 @@ setInterval(poll,5000);
 setInterval(refreshMiuDaily,30000);
 setInterval(function(){if(chatOpen)loadChat();},3000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden){poll();checkVer();refreshMiuDaily();}});
-function checkVer(){if(DEMO)return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){var m=t.match(/APP_VER='([^']+)'/);if(m&&m[1]!==APP_VER)toast('🔄 有新版本，關咗 app 再開就得');}).catch(function(){});}
+function checkVer(){if(DEMO)return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){var m=t.match(/APP_VER='([^']+)'/);if(m&&m[1]!==APP_VER)toast('🔄 有新版本，到「設定 → 更新 App」即可更新');}).catch(function(){});}
 boot();
 })();
 </script>
