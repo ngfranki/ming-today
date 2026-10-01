@@ -263,6 +263,46 @@
   .miu-daily-greeting{font-size:13px;margin:12px 0 0;color:var(--muted)}
 
   .miu-reply{font-size:14px;line-height:1.7;padding:12px;border-radius:14px;background:var(--lav-soft);margin:12px 0 0;overflow-wrap:anywhere}
+  nav.tabs button{font-size:12px;padding:11px 3px}
+  .tt-intro{display:flex;align-items:center;justify-content:space-between;padding:8px 2px 12px;gap:8px}
+  .tt-eyebrow{font-size:12px;color:var(--muted);letter-spacing:.08em}
+  .tt-intro h2{margin:5px 0;font-size:27px;letter-spacing:-.03em}
+  .tt-intro h2 span{display:block;font-size:15px;letter-spacing:.04em;margin-top:4px}
+  .tt-intro p{margin:6px 0;font-size:13px;color:var(--muted)}
+  .tt-mascot{width:86px;flex:none}.tt-mascot svg{width:100%;height:auto}
+  .tt-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}
+  .tt-levels button{border:1px solid var(--line);border-radius:16px;padding:12px 4px;background:var(--card);min-height:64px}
+  .tt-levels button.on{border:2px solid var(--lav);background:var(--lav-soft)}
+  .tt-levels b{display:block;font-size:14px}.tt-levels small{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+  .tt-play{border:1px solid var(--line);border-radius:24px;padding:12px 8px;background:linear-gradient(160deg,var(--lav-soft),var(--bg) 50%,var(--sun-soft));box-shadow:var(--shadow)}
+  .tt-progress{display:flex;justify-content:space-between;gap:6px;font-size:12px;padding:2px 3px 12px}
+  .tt-progress span{color:var(--muted)}
+  .tt-tray{display:grid;grid-template-columns:repeat(var(--slots),minmax(0,1fr));gap:3px;padding:6px;background:var(--lav-soft);border:2px solid var(--card);border-radius:14px;box-shadow:0 3px 0 #bdb0da}
+  .tt-slot{aspect-ratio:1;border-radius:7px;background:rgba(107,88,159,.16);min-width:0}
+  .tt-slot.filled{background:#fffaf1;box-shadow:0 2px 0 #cdbba7}.tt-slot svg{width:100%;height:100%}
+  .tt-message{min-height:44px;font-size:13px;line-height:1.6;margin:13px 5px 6px;color:var(--ink)}
+  .tt-board{position:relative;margin:8px 0 16px;isolation:isolate}
+  .tt-tile{position:absolute;width:15.1515%;aspect-ratio:1;border-radius:11px;background:#fffcf6;border:1px solid #dfd0bc;box-shadow:0 4px 0 #c8ae91,0 5px 7px rgba(67,45,36,.2);padding:2px;touch-action:manipulation}
+  .tt-tile svg{width:100%;height:100%;display:block;pointer-events:none}
+  .tt-tile.covered{filter:brightness(.69) saturate(.65)}
+  .tt-tile:not(:disabled):active{transform:translateY(2px)}
+  .tt-tile.hint{outline:3px solid #e69a16;outline-offset:1px;background:#fff2b4}
+  .tt-tile:focus-visible,.tt-controls button:focus-visible{outline:3px solid var(--lav);outline-offset:2px}
+  .tt-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .tt-controls button{min-height:44px;padding:10px 3px;border-radius:13px;background:var(--card);box-shadow:0 2px 0 var(--line);font-size:13px;font-weight:600}
+  .tt-controls button:disabled{opacity:.4;cursor:default}
+  .tt-footnote{font-size:11px;text-align:center;color:var(--muted);margin:13px 0 0}
+  .tt-welcome{text-align:center}.tt-welcome>div{font-size:42px;margin:8px 0 18px}.tt-welcome h3{font-size:19px}.tt-welcome p{text-align:left;font-size:14px;line-height:1.8;color:var(--muted)}
+  .tt-welcome .btn{width:100%;margin-top:12px;min-height:46px}
+  .tt-result{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12px;background:var(--card);border-radius:20px;z-index:5}
+  .tt-result>span{font-size:44px}.tt-result h3{margin:10px 0;font-size:21px}.tt-result p{margin:0 0 18px;font-size:14px;color:var(--muted)}
+  .tt-rules{margin:16px 4px;color:var(--muted);font-size:13px;line-height:1.8}.tt-rules summary{cursor:pointer;padding:10px 0}
+
+  .game-active header.top{display:none}
+  .game-active .tt-intro{padding:0 2px 10px}
+  .game-active .tt-mascot{width:64px}
+  .game-active .tt-intro h2{font-size:25px}
+  .tt-tray{position:sticky;top:8px;z-index:10}
 </style>
 </head>
 <body>
@@ -290,6 +330,7 @@
   <button data-tab="wall">📸 相牆</button>
   <button data-tab="fun">🏆 挑戰</button>
   <button data-tab="cycle">🌷 月經</button>
+  <button data-tab="game">🎮 遊戲</button>
 </nav>
 <button class="fab hide" id="fab" aria-label="問 Eva">💬</button>
 <div class="veil" id="veil"></div>
@@ -307,7 +348,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20261001-0946';
+var APP_VER='20261001-1906';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -451,7 +492,9 @@ function render(){
   $('hello').innerHTML=(h<12?'早晨':h<18?'午安':'晚安')+'，'+esc(state.settings.name||'曉明')+(h<12?' ☀️':h<18?' 🌤️':' 🌙')+'<small>'+nice(t)+'</small>';
   var sk=streak(); $('streak').textContent='🔥 '+sk+' 日';
   document.querySelectorAll('nav.tabs button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===tab);});
-  $('main').innerHTML=tab==='today'?viewToday():tab==='wall'?viewWall():tab==='cycle'?viewCycle():viewFun();
+  $('main').innerHTML=tab==='today'?viewToday():tab==='wall'?viewWall():tab==='cycle'?viewCycle():tab==='game'?viewGame():viewFun();
+  $('fab').classList.toggle('hide',tab==='game');
+  $('app').classList.toggle('game-active',tab==='game');
   checkBadges(); checkFriends(); setTimeout(maybeCelebrate,700);
 }
 function viewToday(){
@@ -702,6 +745,7 @@ function pendingCelebration(){
   return FRIENDS.filter(function(f){return f.test&&hasFriend(f)&&seen.indexOf(f.id)<0;})[0]||null;
 }
 function maybeCelebrate(){
+  if(tab==='game')return;
   if(celebrating)return; var f=pendingCelebration(); if(!f)return;
   celebrating=true;
   var el=document.createElement('div'); el.className='celebrate';
@@ -1623,12 +1667,103 @@ function chatSend(){
   fetch(SB+'/rest/v1/ming_chat',{method:'POST',headers:hdr(),body:JSON.stringify({role:'user',text:tx||'（相）',status:'pending',meta:meta})}).catch(function(){toast('傳送唔到，再試一次');});
 }
 
+/* TRIPLE_TILE_BEGIN — local-only game, independent of health state. */
+var TT_LEVELS={easy:{name:'輕鬆',total:36,capacity:8,types:5,layers:2},normal:{name:'標準',total:54,capacity:7,types:7,layers:3},hard:{name:'挑戰',total:72,capacity:6,types:9,layers:3}};
+var TT_ANIMALS=['miu','bunny','capy','shiba','penguin','koala','panda','fox','otter'];
+var TT_NAMES=['喵喵','兔仔','水豚','柴犬','企鵝','樹熊','熊貓','狐狸','海獺'];
+var ttGame=null,ttLoaded=false,ttHint=null,ttNotice='',ttSaved=true;
+function ttShuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),v=a[i];a[i]=a[j];a[j]=v;}return a;}
+function ttOverlap(a,b){return Math.abs(a.x-b.x)<.99&&Math.abs(a.y-b.y)<.99;}
+function ttFree(tiles,removed,t){return !removed.has(t.id)&&!tiles.some(function(b){return b.z>t.z&&!removed.has(b.id)&&ttOverlap(t,b);});}
+function ttLayout(level){
+  var out=[],add=function(cols,rows,z,ox,oy){for(var y=0;y<rows;y++)for(var x=0;x<cols;x++)out.push({id:out.length,x:x+ox,y:y+oy,z:z,kind:0});};
+  if(level==='easy'){add(6,4,0,0,0);add(4,3,1,.5,.5);}
+  if(level==='normal'){add(6,5,0,0,0);add(6,3,1,.5,.5);add(3,2,2,1.75,1.5);}
+  if(level==='hard'){add(6,6,0,0,0);add(6,4,1,.5,.5);add(4,3,2,1.25,1.25);}
+  return out;
+}
+function ttNew(level){
+  var cfg=TT_LEVELS[level],tiles=ttLayout(level),removed=new Set(),solution=[];
+  // A legal removal order is chosen first; each successive triple receives one animal.
+  // This supplies a complete winning path without relying on a lucky random deal.
+  while(solution.length<tiles.length){var free=tiles.filter(function(t){return ttFree(tiles,removed,t);}),t=free[Math.floor(Math.random()*free.length)];solution.push(t.id);removed.add(t.id);}
+  var groups=[];for(var g=0;g<tiles.length/3;g++)groups.push(g%cfg.types);ttShuffle(groups);
+  solution.forEach(function(id,i){tiles[id].kind=groups[Math.floor(i/3)];});
+  return {version:1,level:level,tiles:tiles,picks:[],solution:solution};
+}
+function ttState(game){
+  var tray=[],removed=new Set();
+  game.picks.forEach(function(id){var t=game.tiles[id];removed.add(id);tray.push(id);if(tray.filter(function(i){return game.tiles[i].kind===t.kind;}).length===3)tray=tray.filter(function(i){return game.tiles[i].kind!==t.kind;});});
+  return {tray:tray,removed:removed,won:removed.size===game.tiles.length&&tray.length===0,lost:tray.length>=TT_LEVELS[game.level].capacity,matched:(removed.size-tray.length)/3};
+}
+function ttValid(g){
+  if(!g||g.version!==1||!Object.prototype.hasOwnProperty.call(TT_LEVELS,g.level)||!Array.isArray(g.tiles)||!Array.isArray(g.picks))return false;
+  var layout=ttLayout(g.level),cfg=TT_LEVELS[g.level];
+  if(g.tiles.length!==cfg.total||g.picks.length>cfg.total)return false;
+  if(g.tiles.some(function(t,i){var l=layout[i];return !t||t.id!==i||t.x!==l.x||t.y!==l.y||t.z!==l.z||!Number.isInteger(t.kind)||t.kind<0||t.kind>=cfg.types;}))return false;
+  for(var k=0;k<cfg.types;k++)if(g.tiles.filter(function(t){return t.kind===k;}).length%3)return false;
+  var replay={level:g.level,tiles:g.tiles,picks:[]};
+  for(var n=0;n<g.picks.length;n++){var id=g.picks[n],st=ttState(replay);if(!Number.isInteger(id)||!g.tiles[id]||st.won||st.lost||!ttFree(g.tiles,st.removed,g.tiles[id]))return false;replay.picks.push(id);}
+  return true;
+}
+function ttKey(){return 'mingTripleTileV1'+(DEMO?'Demo':'');}
+function ttLoad(){
+  if(ttLoaded)return;ttLoaded=true;
+  try{var g=JSON.parse(localStorage.getItem(ttKey())||'null');if(ttValid(g))ttGame=g;}catch(e){}
+}
+function ttSave(){try{localStorage.setItem(ttKey(),JSON.stringify(ttGame));ttSaved=true;}catch(e){ttSaved=false;}}
+function ttArt(kind){return kind===0?catSVG('home','none','happy'):animalSVG(TT_ANIMALS[kind],'none','happy');}
+function ttBegin(level){if(!Object.prototype.hasOwnProperty.call(TT_LEVELS,level))return;ttGame=ttNew(level);ttHint=null;ttNotice='喵喵：慢慢找，三位相同的朋友就能回家。';ttSave();closeSheet();render();}
+function ttChoose(level){
+  if(!Object.prototype.hasOwnProperty.call(TT_LEVELS,level))return;
+  if(ttGame&&ttGame.picks.length&&!ttState(ttGame).won){openSheet(head('開新一局？')+'<p>目前這局會換成新的'+TT_LEVELS[level].name+'關卡。</p><div class="btnrow"><button class="btn" data-act="close">繼續這局</button><button class="btn fun" data-act="ttBegin" data-level="'+level+'">開新一局</button></div>');}
+  else ttBegin(level);
+}
+function ttPick(id){
+  if(!ttGame||!Number.isInteger(id))return;var before=ttState(ttGame),tile=ttGame.tiles[id];
+  if(!tile||before.won||before.lost||!ttFree(ttGame.tiles,before.removed,tile))return;
+  ttGame.picks.push(id);ttHint=null;var after=ttState(ttGame);
+  ttNotice=after.won?'喵喵：全員回家！你的觀察力閃閃發光。😽':after.lost?'喵喵：收集槽滿了，撤回一步再想想，我陪你。':after.matched>before.matched?['三位朋友一起回家了，做得好！🐾','配成一組！喵喵幫你拍拍手。😸','找到同伴了，繼續慢慢來。🌷'][after.matched%3]:'已接住'+TT_NAMES[tile.kind]+'，再找牠的同伴。';
+  ttSave();render();if(after.won)confetti();
+}
+function ttUndo(){if(!ttGame||!ttGame.picks.length)return;ttGame.picks.pop();ttHint=null;ttNotice='退一步也沒關係，這次換個想法。🐾';ttSave();render();}
+function ttGiveHint(){
+  if(!ttGame)return;var st=ttState(ttGame);if(st.won||st.lost)return;
+  var free=ttGame.tiles.filter(function(t){return ttFree(ttGame.tiles,st.removed,t);});
+  free.sort(function(a,b){function score(t){return st.tray.filter(function(id){return ttGame.tiles[id].kind===t.kind;}).length*10+free.filter(function(x){return x.kind===t.kind;}).length;}return score(b)-score(a);});
+  if(free.length){ttHint=free[0].id;ttNotice='看看亮起的'+TT_NAMES[free[0].kind]+'，留意牠還有多少同伴。';render();}
+}
+function viewGame(){
+  ttLoad();var cfg=ttGame?TT_LEVELS[ttGame.level]:null,st=ttGame?ttState(ttGame):null;
+  var h='<section class="tt-intro"><div><span class="tt-eyebrow">喵喵遊戲屋 · 01</span><h2>Triple Tile <span>動物好朋友</span></h2><p>三隻一組，一起回家 🐾</p></div><div class="tt-mascot" aria-hidden="true">'+catSVG('home','bow','happy')+'</div></section>';
+  h+='<div class="tt-levels" role="group" aria-label="遊戲難度">'+Object.keys(TT_LEVELS).map(function(l){var c=TT_LEVELS[l];return '<button data-act="ttChoose" data-level="'+l+'" aria-pressed="'+!!(ttGame&&ttGame.level===l)+'" class="'+(ttGame&&ttGame.level===l?'on':'')+'"><b>'+({easy:'🌱',normal:'🌼',hard:'🌟'}[l])+' '+c.name+'</b><small>'+c.total+' 張 · '+c.capacity+' 格</small></button>';}).join('')+'</div>';
+  if(!ttGame)return h+'<section class="card tt-welcome"><div aria-hidden="true">🐱 🐰 🐼</div><h3>選個難度，開始找朋友</h3><p>點沒有被蓋住的動物牌，放進收集槽。三隻相同動物會自動消除。</p><p>清空所有牌就過關；收集槽放滿就暫停。可以撤回再試，不用趕時間。</p><button class="btn fun" data-act="ttBegin" data-level="easy">先玩輕鬆版</button></section>';
+  var cap=cfg.capacity;
+  h+='<section class="tt-play"><div class="tt-progress"><b>'+cfg.name+' · 已找到 '+st.matched+' / '+cfg.total/3+' 組</b><span>剩 '+(cfg.total-st.removed.size)+' 張</span></div><div class="tt-tray" style="--slots:'+cap+'" aria-label="收集槽 '+st.tray.length+' / '+cap+' 格">';
+  // Group tray animals visually; removal replay retains the exact order for undo.
+  var tray=st.tray.slice().sort(function(a,b){return ttGame.tiles[a].kind-ttGame.tiles[b].kind;});
+  for(var i=0;i<cap;i++){var t=ttGame.tiles[tray[i]];h+='<div class="tt-slot'+(t?' filled':'')+'"'+(t?' role="img" aria-label="'+TT_NAMES[t.kind]+'"':' aria-hidden="true"')+'>'+(t?ttArt(t.kind):'')+'</div>';}
+  h+='</div><p class="tt-message" role="status" aria-live="polite">'+esc(ttNotice||(st.won?'全員回家！再來一局嗎？':st.lost?'收集槽滿了，可以撤回再試。':'點亮起的牌，三隻相同就能消除。'))+'</p>';
+  var height=ttGame.level==='easy'?4.15:ttGame.level==='normal'?5.15:6.15;
+  h+='<div class="tt-board" style="aspect-ratio:6.6 / '+height+'" aria-label="動物牌桌">';
+  ttGame.tiles.forEach(function(t){if(st.removed.has(t.id))return;var free=ttFree(ttGame.tiles,st.removed,t);h+='<button class="tt-tile'+(!free?' covered':'')+(ttHint===t.id?' hint':'')+'" style="left:'+(t.x/6.6*100)+'%;top:'+(t.y/height*100)+'%;z-index:'+(t.z+1)+'" data-act="ttPick" data-id="'+t.id+'" aria-label="'+TT_NAMES[t.kind]+(free?'，可選':'，被蓋住')+'" '+(!free||st.lost||st.won?'disabled':'')+'>'+ttArt(t.kind)+'</button>';});
+  if(st.won)h+='<div class="tt-result"><span>🎉</span><h3>好朋友全員到齊！</h3><p>剛才每一步，都有你的細心。</p><button class="btn fun" data-act="ttBegin" data-level="'+ttGame.level+'">再玩一局</button></div>';
+  h+='</div><div class="tt-controls"><button data-act="ttUndo" '+(!ttGame.picks.length?'disabled':'')+'>↶ 撤回</button><button data-act="ttHint" '+(st.won||st.lost?'disabled':'')+'>💡 提示</button><button data-act="ttChoose" data-level="'+ttGame.level+'">↻ 新一局</button></div><p class="tt-footnote">'+(ttSaved?'進度保留在這部裝置 · 不計時，慢慢玩':'這部裝置暫時無法儲存進度，關閉頁面後可能遺失')+'</p></section><details class="tt-rules"><summary>玩法小提示</summary><p>只有完全沒有被上層牌蓋住的動物可以選。集齊三隻會自動清走；最後一格若剛好湊成三隻，會先消除，不算輸。</p><p>提示只提供可選的配對方向，不保證每一步都能解開；遇到卡位可以撤回，包括剛才已消除的一組。不同難度會增加牌數、疊層及動物種類，並減少收集格。</p></details>';
+  return h;
+}
+/* TRIPLE_TILE_END */
+
 /* ---------- events ---------- */
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act],[data-tab]'); if(!b)return;
   if(b.hasAttribute('data-tab')){tab=b.getAttribute('data-tab');if(tab==='fun')loadDuo();render();scrollTo(0,0);return;}
   var a=b.getAttribute('data-act'), i=+b.getAttribute('data-i');
-  if(a==='cycleEdit')openCycle(b.getAttribute('data-date'));
+  if(a==='ttChoose')ttChoose(b.getAttribute('data-level'));
+  else if(a==='ttBegin')ttBegin(b.getAttribute('data-level'));
+  else if(a==='ttPick')ttPick(+b.getAttribute('data-id'));
+  else if(a==='ttUndo')ttUndo();
+  else if(a==='ttHint')ttGiveHint();
+  else if(a==='cycleEdit')openCycle(b.getAttribute('data-date'));
   else if(a==='cycleSave')saveCycle();
   else if(a==='cyclePrev')moveCycleMonth(-1);
   else if(a==='cycleNext')moveCycleMonth(1);
