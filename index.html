@@ -250,6 +250,18 @@
   .cycle-start{font-size:14px;margin:0 0 14px}
   @media(max-width:350px){.cycle-hero svg{width:100px}.cycle-hero{padding:14px;gap:8px}}
 
+
+  .miu-daily{border:1px solid var(--line);background:var(--card);position:relative;overflow:hidden}
+  .miu-daily-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .miu-daily-cat{width:65px;flex:none;line-height:0;border-radius:18px;background:var(--lav-soft);padding:5px}
+  .miu-daily-cat svg{width:100%;height:auto}
+  .miu-daily h2{margin:0 0 4px;font-size:16px}
+  .miu-daily-meta{font-size:12px;color:var(--muted)}
+  .miu-daily blockquote{margin:0;font-size:19px;line-height:1.7;font-weight:650;letter-spacing:.01em;overflow-wrap:anywhere}
+  .miu-daily-credit{font-size:12px;line-height:1.7;color:var(--muted);margin-top:10px}
+  .miu-daily-credit a{color:inherit;text-underline-offset:3px;display:inline-block;padding:5px 0}
+  .miu-daily-greeting{font-size:13px;margin:12px 0 0;color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -294,7 +306,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20261001-0803';
+var APP_VER='20261001-0918';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -444,7 +456,7 @@ function render(){
 function viewToday(){
   var t=today(), u=uh(t), tt=totals(t), s=state.settings;
   var rec=band(u&&u.recovery,RL.rec), slp=band(u&&u.sleepScore,RL.slp), act=band(u&&u.movement,RL.act);
-  var html=catCard(u)+'<section class="card ringcard"><button class="morebtn" data-act="detail">詳細 ›</button><div class="rings">'+
+  var html=catCard(u)+miuDailyCard()+'<section class="card ringcard"><button class="morebtn" data-act="detail">詳細 ›</button><div class="rings">'+
     ringBox(u&&u.recovery,rec,'恢復','#FF7A6B','var(--coral-soft)')+
     ringBox(u&&u.sleepScore,slp,'睡眠','#9B87F5','var(--lav-soft)')+
     ringBox(u&&u.movement,act,'活動','#4FBDEB','var(--sky-soft)')+
@@ -730,6 +742,311 @@ function myCat(){var s=state.settings;var coat=s.catCoat||'home',acc=s.catAcc||'
   UNLOCKS.forEach(function(u){if(!unlocked(u)){if(u.id===coat)coat='home';if(u.id===acc)acc='none';}});return {coat:coat,acc:acc};}
 var CATSAY={happy:'喵～你今日心情好靚，喵喵都開心 😸',sleepy:'喵…今晚同喵喵一齊早啲瞓好唔好？😴',sad:'喵，攰就抖下，喵喵陪你 🫶',calm:''};
 function bd0(n){return n==='喵喵'?['喵喵：喵～ 😽','喵喵：咕嚕咕嚕…','喵喵：再摸多下 🐾','喵喵：今日都要開心！'][Math.floor(Math.random()*4)]:[n+'：嘻嘻 😊',n+'：再摸多下 🐾',n+'：今日一齊加油！'][Math.floor(Math.random()*3)];}
+
+/* 90 distinct daily messages, anchored to Hong Kong 2026-10-01. No storage or background service required. */
+var MIU_DAILY=[
+  {
+    "text": "成就出色工作的唯一方法，是熱愛你所做的事。",
+    "author": "Steve Jobs",
+    "url": "https://news.stanford.edu/stories/2005/06/youve-got-find-love-jobs-says"
+  },
+  {
+    "text": "今天先完成一件小事，你的事業就多了一點前進的力量。"
+  },
+  {
+    "text": "還未有掌聲的日子，也可以為自己的認真拍拍手。"
+  },
+  {
+    "text": "把腦海裏的好點子，變成今天能試的一小步。"
+  },
+  {
+    "text": "第一個版本不用漂亮得滿分，先讓它幫到一個人。"
+  },
+  {
+    "text": "你願意開始，已經讓想法有機會成真。"
+  },
+  {
+    "text": "今天的勇敢，可以只是開口問一句客人需要甚麼。"
+  },
+  {
+    "text": "不用一次走完整條路，先看清腳下這一步。"
+  },
+  {
+    "text": "喵喵陪你把「有一天」變成「今天試一點」。"
+  },
+  {
+    "text": "做出人們想要的東西。",
+    "author": "Paul Graham／Y Combinator",
+    "url": "https://paulgraham.com/good.html"
+  },
+  {
+    "text": "用心聽完一位客人的故事，可能比多想十個點子更有用。"
+  },
+  {
+    "text": "你替客人省下的一點麻煩，就是實在的價值。"
+  },
+  {
+    "text": "讓客人容易明白你能幫甚麼，是今天很值得做的事。"
+  },
+  {
+    "text": "一次真誠的跟進，也能慢慢建立信任。"
+  },
+  {
+    "text": "先照顧好眼前的一位客人，再迎接下一位。"
+  },
+  {
+    "text": "客人的問題，是你改進服務的小提示。"
+  },
+  {
+    "text": "把複雜的東西說清楚，也是你的專業。"
+  },
+  {
+    "text": "今天多問一句「這樣有幫助嗎？」，讓答案帶你向前。"
+  },
+  {
+    "text": "堅持願景，靈活處理細節。",
+    "author": "Jeff Bezos（John Schoettler 引述）",
+    "url": "https://www.aboutamazon.com/news/workplace/amazon-vp-john-schoettler-career-tips"
+  },
+  {
+    "text": "別急著用一天的成績，替整段旅程下結論。"
+  },
+  {
+    "text": "把做對的一小步記下來，明天就有起點。"
+  },
+  {
+    "text": "今天比昨天更了解客人，這也算進步。"
+  },
+  {
+    "text": "步伐可以小，方向可以慢慢修正。"
+  },
+  {
+    "text": "一張清楚的清單，能替忙亂的心留一點空間。"
+  },
+  {
+    "text": "先做好最重要的一件事，其他事情逐件來。"
+  },
+  {
+    "text": "持續出現的你，正在累積別人看不見的功夫。"
+  },
+  {
+    "text": "喵喵知道你有用心，今天也請對自己溫柔一點。"
+  },
+  {
+    "text": "做那些暫時無法規模化的事。",
+    "author": "Paul Graham",
+    "url": "https://paulgraham.com/ds.html"
+  },
+  {
+    "text": "遇到行不通的方法，先記下學到甚麼，再換一條路。"
+  },
+  {
+    "text": "一次沒有成交，不等於你沒有價值。"
+  },
+  {
+    "text": "先用小規模試一試，讓真實回饋幫你做決定。"
+  },
+  {
+    "text": "承認「我還不知道」，是學習可以開始的地方。"
+  },
+  {
+    "text": "把失誤變成下次的檢查清單，你就帶走了一份經驗。"
+  },
+  {
+    "text": "今天可以修正昨天的決定，你有這份自由。"
+  },
+  {
+    "text": "問題拆小一點，下一步通常就清楚一點。"
+  },
+  {
+    "text": "你不必證明從不跌倒，只需給自己重新站穩的時間。"
+  },
+  {
+    "text": "持續想辦法，找到出路。",
+    "author": "Paul Graham",
+    "url": "https://paulgraham.com/relres.html"
+  },
+  {
+    "text": "你的熱情值得被看見，也值得有清楚的做法支持。"
+  },
+  {
+    "text": "讓客人知道你為何在乎，比說得很厲害更動人。"
+  },
+  {
+    "text": "保留自己的特色，慢慢找到欣賞它的人。"
+  },
+  {
+    "text": "分享一個你真正懂的細節，讓專業自然說話。"
+  },
+  {
+    "text": "你今天認真做的服務，正在替品牌寫下一頁。"
+  },
+  {
+    "text": "真誠地說明能做到甚麼，信任會有更穩的起點。"
+  },
+  {
+    "text": "把承諾說得實在，把交付做得用心。"
+  },
+  {
+    "text": "喵喵喜歡你專注做自己擅長事情的樣子。"
+  },
+  {
+    "text": "保持渴求，保持傻勁。",
+    "author": "Steve Jobs 引述《Whole Earth Catalog》",
+    "url": "https://news.stanford.edu/stories/2005/06/youve-got-find-love-jobs-says"
+  },
+  {
+    "text": "今天留一點時間看看收入和支出，讓前進更踏實。"
+  },
+  {
+    "text": "清楚知道自己的成本，也是照顧這份事業。"
+  },
+  {
+    "text": "報價前想清楚價值，開口時就多一分底氣。"
+  },
+  {
+    "text": "把有限的資源，先放在最需要驗證的地方。"
+  },
+  {
+    "text": "願意為成果負責，也可以為自己的時間設界線。"
+  },
+  {
+    "text": "不是每個機會都要接，留空間給適合你的事。"
+  },
+  {
+    "text": "一次清楚的溝通，可能省下很多來回和誤會。"
+  },
+  {
+    "text": "讓工作方式簡單一點，把精神留給真正重要的人。"
+  },
+  {
+    "text": "可以有不同意見，仍然全力投入。",
+    "author": "Jeff Bezos",
+    "url": "https://www.aboutamazon.com/news/company-news/2016-letter-to-shareholders"
+  },
+  {
+    "text": "有人走得快，有人走得穩，你可以找到自己的節奏。"
+  },
+  {
+    "text": "今天的休息，也是在照顧明天做決定的自己。"
+  },
+  {
+    "text": "累的時候先喝口水，事情可以一件一件處理。"
+  },
+  {
+    "text": "你值得被好好對待，包括被你自己好好對待。"
+  },
+  {
+    "text": "不用把每個晚上都交給工作，生活也需要你。"
+  },
+  {
+    "text": "暫停一下看清方向，仍然是前進的一部分。"
+  },
+  {
+    "text": "事業的成績值得在意，你的身心同樣值得照顧。"
+  },
+  {
+    "text": "喵喵陪你深呼吸一下，再決定今天最重要的一步。"
+  },
+  {
+    "text": "要享有功勞，先學會承擔責任。",
+    "author": "Tim Cook",
+    "url": "https://news.stanford.edu/stories/2019/06/commencement-main"
+  },
+  {
+    "text": "把需要說清楚，別人就更容易與你並肩。"
+  },
+  {
+    "text": "向有經驗的人請教，是替自己多開一扇窗。"
+  },
+  {
+    "text": "一個好的合作，可以從把彼此的期待講明白開始。"
+  },
+  {
+    "text": "有不同意見時，先找出大家共同想做到的事。"
+  },
+  {
+    "text": "你不用一個人懂所有事情，找對幫手也是能力。"
+  },
+  {
+    "text": "給夥伴一句具體的感謝，讓努力被看見。"
+  },
+  {
+    "text": "把好的做法記下來，團隊就能一起做得更穩。"
+  },
+  {
+    "text": "你的耐心和尊重，也在塑造你想建立的事業。"
+  },
+  {
+    "text": "我們承受得起金錢損失，卻承受不起絲毫聲譽的損失。",
+    "author": "Warren Buffett（節譯）",
+    "url": "https://www.berkshirehathaway.com/2010ar/2010ar.pdf"
+  },
+  {
+    "text": "今天用一個小例子，說清楚你的服務能帶來甚麼。"
+  },
+  {
+    "text": "先找到真正需要的人，再想怎樣說服更多人。"
+  },
+  {
+    "text": "客人還未決定時，清楚解答比催促更有幫助。"
+  },
+  {
+    "text": "分享真實的過程，讓別人看見你的用心。"
+  },
+  {
+    "text": "每次交付之後問一個好問題，下一次就有改進方向。"
+  },
+  {
+    "text": "留意哪些事情真的有效，讓努力有地方累積。"
+  },
+  {
+    "text": "把今天學到的一點，放進明天的做法裏。"
+  },
+  {
+    "text": "你正一邊經營事業，一邊成為更有經驗的自己。"
+  },
+  {
+    "text": "在挑戰中找到勇氣。",
+    "author": "Tim Cook",
+    "url": "https://news.stanford.edu/stories/2019/06/commencement-main"
+  },
+  {
+    "text": "回頭看看起點，你可能已經走過不少陌生的路。"
+  },
+  {
+    "text": "為一個完成的小目標慶祝一下，喵喵替你拍手。"
+  },
+  {
+    "text": "你可以有遠大的想法，也可以從很小的服務開始。"
+  },
+  {
+    "text": "讓好奇心陪你試新方法，不用急著給自己打分。"
+  },
+  {
+    "text": "困難來的時候，先找一件現在可以處理的事。"
+  },
+  {
+    "text": "你付出的心思，值得用清楚的作品和服務呈現。"
+  },
+  {
+    "text": "今天留下的一點改善，會成為下一段路的基礎。"
+  },
+  {
+    "text": "這一輪走到這裏了，帶著學到的經驗，再出發吧。"
+  }
+];
+function miuDayNumber(now){return Math.floor(((now==null?Date.now():now)+8*60*60*1000)/86400000);}
+function miuDailyIndex(now){var n=miuDayNumber(now)-Math.floor(Date.UTC(2026,9,1)/86400000);return ((n%MIU_DAILY.length)+MIU_DAILY.length)%MIU_DAILY.length;}
+function miuDailyCard(){
+  var i=miuDailyIndex(),q=MIU_DAILY[i],c=myCat();
+  return '<section class="card miu-daily" id="miuDaily" data-day="'+miuDayNumber()+'" aria-label="喵喵每日創業加油句"><div class="miu-daily-head"><button class="miu-daily-cat" data-act="miuPep" aria-label="聽喵喵加油">'+catSVG(c.coat,c.acc,'happy')+'</button><div><h2>喵喵的創業加油站 🐾</h2><div class="miu-daily-meta">每日一句 · '+(i+1)+' / 90 · 香港時間</div></div></div><blockquote>'+esc(q.text)+'</blockquote><div class="miu-daily-credit">'+(q.author?'— '+esc(q.author)+' · 中文意譯<br><a href="'+esc(q.url)+'" target="_blank" rel="noopener noreferrer">查看出處 ↗</a>':'— 喵喵原創鼓勵')+'</div><p class="miu-daily-greeting">'+esc(state.settings.name||'曉明')+'，今天也陪你走一小步。😽</p></section>';
+}
+function refreshMiuDaily(){
+  var el=$('miuDaily');
+  if(el&&state&&Number(el.getAttribute('data-day'))!==miuDayNumber())el.outerHTML=miuDailyCard();
+}
+
 function catCard(u){
   var c=myCat(), f=catFace(), bd=buddy(), say=(bd.id!=='miu'&&buddySay(bd,u))||CATSAY[f]||('喵喵話：'+overall(u));
   var next=UNLOCKS.filter(function(x){return !unlocked(x);})[0];
@@ -1178,6 +1495,7 @@ document.addEventListener('click',function(e){
   else if(a==='favtoggle'){var mid=b.getAttribute('data-id'),mm=state.meals.filter(function(x){return x.id===mid;})[0];if(mm){var sig=favSig(mm.items);
     if(state.favs.some(function(f){return f.id===sig;})){mutate(function(s){s.favs=s.favs.filter(function(f){return f.id!==sig;});});toast('已移出常食');}
     else{var nf=addFav(mm);if(nf){mutate(function(s){upsertFav(s,nf);});toast('⭐ 記咗做常食');}else toast('呢餐冇食物庫數字，記唔到做常食');}openMeal(mid);}}
+  else if(a==='miuPep'){toast('喵喵：'+MIU_DAILY[miuDailyIndex()].text);}
   else if(a==='pet'){b.classList.remove('bounce');void b.offsetWidth;b.classList.add('bounce');var bn=buddy().n;toast(bd0(bn));}
   else if(a==='wear'){var id3=b.getAttribute('data-id'),k=b.getAttribute('data-k');mutate(function(s){if(k==='coat')s.settings.catCoat=id3;else s.settings.catAcc=id3;});toast('喵喵換好衫喇 😸');}
   else if(a==='lockedItem'){toast('🔒 完成多啲挑戰，喵喵就有新嘢著');}
@@ -1236,8 +1554,9 @@ function boot(){
   }).catch(function(){if(state){setSync('離線，用緊上次嘅資料');}else showGate('連唔到網絡，遲啲再試');});
 }
 setInterval(poll,5000);
+setInterval(refreshMiuDaily,30000);
 setInterval(function(){if(chatOpen)loadChat();},3000);
-document.addEventListener('visibilitychange',function(){if(!document.hidden){poll();checkVer();}});
+document.addEventListener('visibilitychange',function(){if(!document.hidden){poll();checkVer();refreshMiuDaily();}});
 function checkVer(){if(DEMO)return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){var m=t.match(/APP_VER='([^']+)'/);if(m&&m[1]!==APP_VER)toast('🔄 有新版本，關咗 app 再開就得');}).catch(function(){});}
 boot();
 })();
