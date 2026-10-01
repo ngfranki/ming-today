@@ -262,6 +262,7 @@
   .miu-daily-credit a{color:inherit;text-underline-offset:3px;display:inline-block;padding:5px 0}
   .miu-daily-greeting{font-size:13px;margin:12px 0 0;color:var(--muted)}
 
+  .miu-reply{font-size:14px;line-height:1.7;padding:12px;border-radius:14px;background:var(--lav-soft);margin:12px 0 0;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -306,7 +307,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20261001-0918';
+var APP_VER='20261001-0946';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -741,7 +742,179 @@ function viewFriends(){
 function myCat(){var s=state.settings;var coat=s.catCoat||'home',acc=s.catAcc||'none';
   UNLOCKS.forEach(function(u){if(!unlocked(u)){if(u.id===coat)coat='home';if(u.id===acc)acc='none';}});return {coat:coat,acc:acc};}
 var CATSAY={happy:'喵～你今日心情好靚，喵喵都開心 😸',sleepy:'喵…今晚同喵喵一齊早啲瞓好唔好？😴',sad:'喵，攰就抖下，喵喵陪你 🫶',calm:''};
-function bd0(n){return n==='喵喵'?['喵喵：喵～ 😽','喵喵：咕嚕咕嚕…','喵喵：再摸多下 🐾','喵喵：今日都要開心！'][Math.floor(Math.random()*4)]:[n+'：嘻嘻 😊',n+'：再摸多下 🐾',n+'：今日一齊加油！'][Math.floor(Math.random()*3)];}
+var MIU_NUDGES=[
+  "你心裏在乎的事，值得今天留一點時間給它。",
+  "今天先送出那個邀請，讓好機會知道你在這裏。",
+  "把第一步縮小到願意開始的程度，我陪你。",
+  "你不必等到很有信心，才試一件小事。",
+  "為你的點子騰一小格時間，讓它慢慢長出形狀。",
+  "今天做一個能拿給別人看的小成果吧。",
+  "把想說的話練習一次，下一次開口就熟悉一點。",
+  "開始前先笑一下，你可以帶著緊張往前走。",
+  "留一點期待給今天，也許會聽到有用的新答案。",
+  "今天認真聽一個人的需要，讓服務更貼近生活。",
+  "你的細心，可能正好接住客人說不清的困擾。",
+  "把客人的原話記下來，那是理解對方的好起點。",
+  "有時候最好的點子，藏在一句「原來你需要這個」。",
+  "今天讓一個步驟更容易，客人就少一點費力。",
+  "給對方一個清楚的下一步，溝通可以輕鬆一點。",
+  "先問清楚再幫忙，你的用心會更有方向。",
+  "看見客人的猶豫，可以先溫柔地問一問。",
+  "今天替一個人解決小問題，也是一份值得珍惜的成果。",
+  "把最想完成的事情圈起來，先陪它走一段。",
+  "今天不用塞滿行程，留一格給真正重要的事。",
+  "為一項工作定個小終點，完成後好好鬆一口氣。",
+  "先把桌面上的一件事收好，心裏也能空出一點位置。",
+  "你的注意力很珍貴，今天把它送給值得的事情。",
+  "開工前問問自己：做到哪一步，就算今天有進展？",
+  "把大目標寫成一個動作，手就知道從哪裏開始。",
+  "先完成眼前這一頁，下一頁等一下再翻。",
+  "今天保護一段不被打擾的時間，陪你的想法長大。",
+  "試過之後留下的發現，會讓下一次更有準備。",
+  "這條路不通，可以先停下來看看旁邊的小路。",
+  "聽到拒絕先照顧心情，等準備好再整理原因。",
+  "你可以對一個方法失望，同時保留嘗試的勇氣。",
+  "把「哪裏卡住」說清楚，已經開始整理問題了。",
+  "今天做個小實驗，結果好壞都記下一個發現。",
+  "改變做法之前，先看看手上多了甚麼新線索。",
+  "給自己一次重寫的機會，初稿本來就可以修改。",
+  "昨天的經驗今天用得上，你沒有白走那一步。",
+  "你喜歡的細節，可以成為別人記住你的理由。",
+  "用你自然的語氣介紹作品，真誠也有吸引力。",
+  "把一件小事做得周到，讓風格落在細節裏。",
+  "今天展示一個真實的工作片段，讓用心有形狀。",
+  "慢慢練習把自己的長處說清楚，我在旁邊聽。",
+  "別急著把每個想法都收起來，先留下一個最想試的。",
+  "你可以欣賞別人的成果，也珍惜自己的特色。",
+  "把你真正相信的價值，放進今天的一個選擇。",
+  "讓作品帶一點你的溫度，認真也可以很親切。",
+  "看懂一筆成本，就多一分選擇的清楚。",
+  "今天把一項容易忘記的支出記下來吧。",
+  "答應新工作前，先替時間表留一點呼吸的位置。",
+  "把交付範圍說明白，是照顧客人也是照顧自己。",
+  "需要考慮時，可以大方說「讓我核對後回覆」。",
+  "合適的步伐，會把時間和精神都算進去。",
+  "今天留意哪一件事最值得投入，先照顧好它。",
+  "有些邀請可以晚一點答覆，清楚之後再承諾。",
+  "保留一點餘裕，讓突發事情來時有地方安放。",
+  "休息前把下一步寫下來，回來時就不用重新找路。",
+  "今天若有點累，選一個做得到的小任務就好。",
+  "肩膀放鬆一點，你正在做一件需要耐心的事。",
+  "把午餐好好吃完，再回來照顧你的計劃。",
+  "讓眼睛離開螢幕一下，窗外也有今天的風景。",
+  "你可以認真工作，也可以認真享受一段空閒。",
+  "把完成的事數一數，別只看還沒做完的清單。",
+  "今天的你已經很努力了，留一句好話給自己吧。",
+  "收工時跟自己說聲辛苦了，我也會點點頭。",
+  "遇到難題時，找一位能一起想辦法的人聊聊。",
+  "把期待講清楚，合作就多一點安心。",
+  "今天說一句具體的謝謝，讓夥伴知道你看見了。",
+  "你願意聽不同想法，團隊就多一個學習的機會。",
+  "討論卡住時，先一起確認正在解決哪個問題。",
+  "分享一個小技巧，也能替夥伴省下一點力氣。",
+  "不熟悉的事可以請教，你仍然是認真的創業者。",
+  "把一份好成果的功勞分給同行的人，喜悅會更完整。",
+  "今天問問夥伴需要甚麼支持，從一件小事做起。",
+  "先用一句話說明幫到誰，讓你的介紹更清楚。",
+  "今天試著少用一個術語，多給一個生活例子。",
+  "客人理解之後的點頭，值得你好好留意。",
+  "把常見問題整理一條，下一次回覆就更從容。",
+  "說明限制也能建立信任，你不必甚麼都承諾。",
+  "給客人作決定的空間，讓交流保留舒服的節奏。",
+  "今天回頭看看哪段說明最有用，把它留起來。",
+  "把完成的交付整理好，也是替未來的自己鋪路。",
+  "一次有耐心的解答，能讓服務多一點溫度。",
+  "你以前覺得陌生的事，如今可能已經熟悉了一點。",
+  "今天挑一個小成果紀念一下，讓進步留下痕跡。",
+  "把本週最有用的發現寫成一句，帶去下一週。",
+  "走到這裏的你，多了只有親自做過才有的體會。",
+  "一個好習慣正在成形，給它一點時間站穩。",
+  "今天的選擇可以更貼近你想建立的生活。",
+  "把不再適合的方法放下，給新做法留一點空間。",
+  "帶著好奇看看下一段路，你還有很多可以學的事。",
+  "新一輪開始前，先為這段日子的自己拍拍手。"
+];
+var MIU_REPLIES=[
+  "喵～摸頭已收到，今天的陪伴正式開始。😽",
+  "耳朵借你摸一下，煩惱可以先放旁邊。🐾",
+  "我把尾巴捲好了，準備陪你想下一步。",
+  "咕嚕咕嚕…這是喵喵的專屬打氣聲。",
+  "再摸一下？我還有一小份可愛可以送你。",
+  "小爪爪伸出來，和你擊個掌。🐾",
+  "今天的貓貓應援席，已經留了你的位置。",
+  "我負責可愛，你慢慢把事情做好就行。",
+  "喵喵沒有簡報，但有一雙認真聽的耳朵。",
+  "今天的小隊集合：你、我，還有一點勇氣。",
+  "收到摸摸！回禮是一個隔著螢幕的小抱抱。",
+  "我的鬍鬚動了一下，好像在替你加油。",
+  "先別急，我把小板凳搬來陪你了。",
+  "你一出現，喵喵的陪伴時間就開始了。",
+  "小肉球蓋章：今天也值得被溫柔對待。",
+  "我把鼓勵藏在爪爪裏，現在交給你。",
+  "喵～今天也來當你的忠實小觀眾。",
+  "摸摸頭之後，要不要一起伸個懶腰？",
+  "尾巴輕輕一搖，送你一點輕鬆的心情。",
+  "貓貓點頭中：嗯，我有在聽。",
+  "不用馬上振作，先在這裏歇一小會兒。",
+  "今天說不出心情也沒關係，我陪你坐一下。",
+  "有些事情很費心，你可以承認自己累了。",
+  "先喝一口水，再看看手上最小的一步。",
+  "心裏有點亂時，先把一件事寫下來吧。",
+  "你可以慢慢說，不用把話整理得很漂亮。",
+  "忙完一段了嗎？記得把肩膀放下來。",
+  "今天想安靜一點，我就安靜地陪著。",
+  "不開心的時候，也不用努力逗別人開心。",
+  "先把呼吸放慢，我陪你留一點空白。",
+  "你不用每一刻都有成果，才能值得被喜歡。",
+  "給今天的自己一句好話，好不好？",
+  "事情可以明天繼續，你也需要收工時間。",
+  "有需要就找信任的人聊聊，你可以有人陪。",
+  "想休息就先休息一會兒，我的鼓勵還在。",
+  "今天完成了甚麼小事？我想陪你記住它。",
+  "暫時沒答案也可以，先把問題放穩。",
+  "一口飯、一口水，也值得你好好照顧自己。",
+  "我替你留著這個小角落，隨時來摸摸頭。",
+  "今天不用跟別人比速度，先感受自己的步伐。",
+  "你的點子想幫到誰？先想起那個人的一天。",
+  "今天挑一件能完成的小事，我陪你開工。",
+  "那封想了很久的訊息，可以先寫第一句。",
+  "如果計劃太大，我們就把第一步切小一點。",
+  "作品還在長大，先讓一位合適的人看看吧。",
+  "一句客人的真實回應，值得你停下來聽。",
+  "把今天的好發現收好，明天可能就用得上。",
+  "這次沒成交，先照顧心情，再整理學到甚麼。",
+  "你的服務有甚麼貼心小細節？可以說給人聽。",
+  "今天試一個小改進，看看它帶來甚麼不同。",
+  "報價前先核對範圍，清楚一點會更安心。",
+  "遇到不確定的問題，先問，比硬猜踏實。",
+  "把承諾記下來，逐件交付就很有力量。",
+  "今天的客人若有疑問，就從那裏開始解釋。",
+  "夥伴幫了忙的地方，記得送上一句謝謝。",
+  "你可以喜歡自己的作品，同時繼續改進它。",
+  "先把最重要的事情做一小段，我替你打氣。",
+  "今天學懂的新方法，也算放進事業的小工具箱。",
+  "有個小成果了？喵喵已經準備好拍手。😸",
+  "收工前留一行筆記，明天的你會謝謝今天的你。"
+];
+var miuReplyDeck=null;
+function nextMiuReply(){
+  var key='mingMiuReplyDeckV1'+(DEMO?'Demo':'');
+  if(!miuReplyDeck){
+    try{miuReplyDeck=JSON.parse(localStorage.getItem(key)||'null');}catch(e){}
+    if(!miuReplyDeck||!Array.isArray(miuReplyDeck.bag)||miuReplyDeck.bag.some(function(n){return !Number.isInteger(n)||n<0||n>=MIU_REPLIES.length;})||new Set(miuReplyDeck.bag).size!==miuReplyDeck.bag.length||!Number.isInteger(miuReplyDeck.last)||miuReplyDeck.last< -1||miuReplyDeck.last>=MIU_REPLIES.length)miuReplyDeck={bag:[],last:-1};
+  }
+  if(!miuReplyDeck.bag.length){
+    miuReplyDeck.bag=MIU_REPLIES.map(function(_,i){return i;});
+    for(var i=miuReplyDeck.bag.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),n=miuReplyDeck.bag[i];miuReplyDeck.bag[i]=miuReplyDeck.bag[j];miuReplyDeck.bag[j]=n;}
+    var end=miuReplyDeck.bag.length-1;
+    if(miuReplyDeck.bag[end]===miuReplyDeck.last){var swap=miuReplyDeck.bag[0];miuReplyDeck.bag[0]=miuReplyDeck.bag[end];miuReplyDeck.bag[end]=swap;}
+  }
+  var id=miuReplyDeck.bag.pop();miuReplyDeck.last=id;
+  try{localStorage.setItem(key,JSON.stringify(miuReplyDeck));}catch(e){}
+  return '喵喵：'+MIU_REPLIES[id];
+}
+function bd0(n){return n==='喵喵'?nextMiuReply():[n+'：嘻嘻 😊',n+'：再摸多下 🐾',n+'：今日一齊加油！'][Math.floor(Math.random()*3)];}
+
 
 /* 90 distinct daily messages, anchored to Hong Kong 2026-10-01. No storage or background service required. */
 var MIU_DAILY=[
@@ -1040,7 +1213,7 @@ function miuDayNumber(now){return Math.floor(((now==null?Date.now():now)+8*60*60
 function miuDailyIndex(now){var n=miuDayNumber(now)-Math.floor(Date.UTC(2026,9,1)/86400000);return ((n%MIU_DAILY.length)+MIU_DAILY.length)%MIU_DAILY.length;}
 function miuDailyCard(){
   var i=miuDailyIndex(),q=MIU_DAILY[i],c=myCat();
-  return '<section class="card miu-daily" id="miuDaily" data-day="'+miuDayNumber()+'" aria-label="喵喵每日創業加油句"><div class="miu-daily-head"><button class="miu-daily-cat" data-act="miuPep" aria-label="聽喵喵加油">'+catSVG(c.coat,c.acc,'happy')+'</button><div><h2>喵喵的創業加油站 🐾</h2><div class="miu-daily-meta">每日一句 · '+(i+1)+' / 90 · 香港時間</div></div></div><blockquote>'+esc(q.text)+'</blockquote><div class="miu-daily-credit">'+(q.author?'— '+esc(q.author)+' · 中文意譯<br><a href="'+esc(q.url)+'" target="_blank" rel="noopener noreferrer">查看出處 ↗</a>':'— 喵喵原創鼓勵')+'</div><p class="miu-daily-greeting">'+esc(state.settings.name||'曉明')+'，今天也陪你走一小步。😽</p></section>';
+  return '<section class="card miu-daily" id="miuDaily" data-day="'+miuDayNumber()+'" aria-label="喵喵每日創業加油句"><div class="miu-daily-head"><button class="miu-daily-cat" data-act="miuPep" aria-label="摸摸喵喵，聽一句鼓勵">'+catSVG(c.coat,c.acc,'happy')+'</button><div><h2>喵喵的創業加油站 🐾</h2><div class="miu-daily-meta">每日加油 · '+(i+1)+' / 90 · 香港時間</div></div></div><blockquote>'+esc(q.text)+'</blockquote><div class="miu-daily-credit">'+(q.author?'— '+esc(q.author)+' · 中文意譯<br><a href="'+esc(q.url)+'" target="_blank" rel="noopener noreferrer">查看出處 ↗</a>':'— 喵喵原創鼓勵')+'</div><p class="miu-daily-greeting">'+esc(state.settings.name||'曉明')+'，'+esc(MIU_NUDGES[i])+'</p><p id="miuReply" class="miu-reply" role="status" aria-live="polite">摸摸左上角的喵喵，聽牠說句悄悄話。🐾</p></section>';
 }
 function refreshMiuDaily(){
   var el=$('miuDaily');
@@ -1050,7 +1223,7 @@ function refreshMiuDaily(){
 function catCard(u){
   var c=myCat(), f=catFace(), bd=buddy(), say=(bd.id!=='miu'&&buddySay(bd,u))||CATSAY[f]||('喵喵話：'+overall(u));
   var next=UNLOCKS.filter(function(x){return !unlocked(x);})[0];
-  return '<div class="catcard"><div class="cat" data-act="pet">'+animalSVG(bd.id,c.acc,f)+'</div><div class="bubble">'+say+
+  return '<div class="catcard"><button class="cat" data-act="pet" aria-label="摸摸動物朋友">'+animalSVG(bd.id,c.acc,f)+'</button><div class="bubble"><span id="buddySpeech" role="status" aria-live="polite">'+say+'</span>'+
     (next?'<small>🐾 再攞 '+(next.need-state.badges.length)+' 個徽章，衣櫃就解鎖「'+next.n+'」</small>':'<small>🐾 喵喵全套解鎖晒，你係貓貓大師！</small>')+'</div></div>';
 }
 function viewLocker(){
@@ -1495,8 +1668,8 @@ document.addEventListener('click',function(e){
   else if(a==='favtoggle'){var mid=b.getAttribute('data-id'),mm=state.meals.filter(function(x){return x.id===mid;})[0];if(mm){var sig=favSig(mm.items);
     if(state.favs.some(function(f){return f.id===sig;})){mutate(function(s){s.favs=s.favs.filter(function(f){return f.id!==sig;});});toast('已移出常食');}
     else{var nf=addFav(mm);if(nf){mutate(function(s){upsertFav(s,nf);});toast('⭐ 記咗做常食');}else toast('呢餐冇食物庫數字，記唔到做常食');}openMeal(mid);}}
-  else if(a==='miuPep'){toast('喵喵：'+MIU_DAILY[miuDailyIndex()].text);}
-  else if(a==='pet'){b.classList.remove('bounce');void b.offsetWidth;b.classList.add('bounce');var bn=buddy().n;toast(bd0(bn));}
+  else if(a==='miuPep'){var reply=$('miuReply');if(reply)reply.textContent=nextMiuReply();}
+  else if(a==='pet'){b.classList.remove('bounce');void b.offsetWidth;b.classList.add('bounce');var bn=buddy().n,line=bd0(bn),speech=$('buddySpeech');if(speech)speech.textContent=line;else toast(line);}
   else if(a==='wear'){var id3=b.getAttribute('data-id'),k=b.getAttribute('data-k');mutate(function(s){if(k==='coat')s.settings.catCoat=id3;else s.settings.catAcc=id3;});toast('喵喵換好衫喇 😸');}
   else if(a==='lockedItem'){toast('🔒 完成多啲挑戰，喵喵就有新嘢著');}
   else if(a==='chatPic')$('chatIn').click();
