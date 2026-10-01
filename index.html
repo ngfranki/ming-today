@@ -218,6 +218,38 @@
   .lk.on{background:var(--lav-soft); box-shadow:0 0 0 3px var(--lav)}
   .lk .lock{position:absolute; top:6px; right:8px; font-size:14px}
   .sharebig{width:100%; border-radius:20px; display:block; margin-bottom:12px; box-shadow:var(--shadow)}
+
+  /* Cycle journal: table scrolls within the card on small screens. */
+  nav.tabs{width:calc(100% - 24px);max-width:448px}
+  nav.tabs button{flex:1;padding:11px 5px;font-size:13px}
+  .cycle-hero{background:var(--lav-soft);border-radius:28px;padding:18px;display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .cycle-hero svg{width:126px;flex:none;height:154px}
+  .cycle-hero h2{font-size:22px;margin:4px 0 8px}
+  .cycle-hero p{font-size:14px;margin:0;line-height:1.7}
+  .cycle-kicker{font-size:11px;letter-spacing:.12em;color:var(--muted)}
+  .cycle-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+  .cycle-toolbar input{min-width:0;flex:1;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:9px;color:var(--ink)}
+  .cycle-toolbar button{background:var(--soft);border-radius:12px;min-height:44px;padding:8px 12px}
+  .cycle-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:16px}
+  .cycle-table{border-collapse:separate;border-spacing:0;min-width:820px;width:100%;font-size:13px}
+  .cycle-table caption{text-align:left;padding:12px;color:var(--muted)}
+  .cycle-table th,.cycle-table td{padding:12px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  .cycle-table th{background:var(--soft);font-weight:600;white-space:nowrap}
+  .cycle-table th:first-child,.cycle-table td:first-child{position:sticky;left:0;background:var(--card);z-index:1;min-width:92px}
+  .cycle-table th:first-child{background:var(--soft);z-index:2}
+  .cycle-table td:nth-child(2){min-width:190px;max-width:240px;overflow-wrap:anywhere}
+  .cycle-table small{display:block;color:var(--muted);line-height:1.6}
+  .cycle-table button{min-height:44px;text-align:left;color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+  .cycle-tag{display:inline-block;background:var(--lav-soft);padding:2px 7px;border-radius:8px;font-size:11px;margin-bottom:4px}
+  .cycle-note{font-size:12px;line-height:1.8;color:var(--muted);margin:12px 0 0}
+  .cycle-form select{font:inherit;color:var(--ink);background:var(--card);padding:11px;border:1px solid var(--line);border-radius:12px;width:100%}
+  .cycle-form .cycle-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .cycle-checks{display:flex;flex-wrap:wrap;gap:8px 14px;margin:10px 0 18px;font-size:14px}
+  .cycle-checks label,.cycle-start{display:flex;align-items:center;gap:7px;min-height:36px}
+  .cycle-checks input,.cycle-start input{width:18px;height:18px;accent-color:var(--lav)}
+  .cycle-start{font-size:14px;margin:0 0 14px}
+  @media(max-width:350px){.cycle-hero svg{width:100px}.cycle-hero{padding:14px;gap:8px}}
+
 </style>
 </head>
 <body>
@@ -244,6 +276,7 @@
   <button data-tab="today" class="on">☀️ 今日</button>
   <button data-tab="wall">📸 相牆</button>
   <button data-tab="fun">🏆 挑戰</button>
+  <button data-tab="cycle">🌷 月經</button>
 </nav>
 <button class="fab hide" id="fab" aria-label="問 Eva">💬</button>
 <div class="veil" id="veil"></div>
@@ -261,7 +294,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20260929-1417';
+var APP_VER='20261001-0803';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -294,6 +327,8 @@ function defaults(s){
   s=s&&typeof s==='object'?s:{};
   ['meals'].forEach(function(k){if(!Array.isArray(s[k]))s[k]=[];});
   ['moods','water','weights','bf'].forEach(function(k){if(!s[k]||typeof s[k]!=='object')s[k]={};});
+  if(!s.menstrual||typeof s.menstrual!=='object'||Array.isArray(s.menstrual))s.menstrual={};
+  if(!s.menstrual.days||typeof s.menstrual.days!=='object'||Array.isArray(s.menstrual.days))s.menstrual.days={};
   if(!s.uh||typeof s.uh!=='object')s.uh={days:{}};
   if(!s.uh.days)s.uh.days={};
   if(!Array.isArray(s.badges))s.badges=[];
@@ -403,7 +438,7 @@ function render(){
   $('hello').innerHTML=(h<12?'早晨':h<18?'午安':'晚安')+'，'+esc(state.settings.name||'曉明')+(h<12?' ☀️':h<18?' 🌤️':' 🌙')+'<small>'+nice(t)+'</small>';
   var sk=streak(); $('streak').textContent='🔥 '+sk+' 日';
   document.querySelectorAll('nav.tabs button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===tab);});
-  $('main').innerHTML=tab==='today'?viewToday():tab==='wall'?viewWall():viewFun();
+  $('main').innerHTML=tab==='today'?viewToday():tab==='wall'?viewWall():tab==='cycle'?viewCycle():viewFun();
   checkBadges(); checkFriends(); setTimeout(maybeCelebrate,700);
 }
 function viewToday(){
@@ -797,6 +832,85 @@ function loadDuo(){
     duo={};(rs||[]).forEach(function(x){duo[x.owner]=x.data;});if(tab==='fun')render();}).catch(function(){});
 }
 
+
+/* ---------- private cycle journal; ring observations, no inferred phases ---------- */
+var cycleMonth=today().slice(0,7);
+var CYCLE_FLOW={'':'未記錄',none:'沒有出血',spotting:'點滴出血',light:'少量',medium:'中量',heavy:'多量'};
+var CYCLE_SYMPTOMS=['腹痛','腰痠','腹脹','頭痛','乳房脹痛','疲倦','情緒起伏'];
+function cycleBunny(){
+  return '<svg viewBox="0 0 160 190" role="img" aria-label="抱著愛心的小白兔月月"><ellipse cx="80" cy="177" rx="53" ry="9" fill="#CEC1EC" opacity=".5"/>'+
+    '<path d="M44 81C22 28 40 3 54 17C64 29 65 55 65 77M93 76C96 30 116 4 128 21C140 40 117 72 111 86" fill="#FFFDFB" stroke="#DFCFE8" stroke-width="3"/>'+
+    '<path d="M49 62C39 29 47 23 51 31L57 64M103 64C110 33 123 25 120 38L110 68" stroke="#F5BCD3" stroke-width="9" stroke-linecap="round"/>'+
+    '<ellipse cx="81" cy="143" rx="44" ry="35" fill="#FFFDFB" stroke="#DFCFE8" stroke-width="2"/>'+
+    '<ellipse cx="81" cy="94" rx="56" ry="43" fill="#FFFDFB" stroke="#DFCFE8" stroke-width="2"/>'+
+    '<ellipse cx="46" cy="107" rx="12" ry="7" fill="#F8CBDF"/><ellipse cx="114" cy="107" rx="12" ry="7" fill="#F8CBDF"/>'+
+    '<ellipse cx="61" cy="93" rx="5" ry="7" fill="#51445E"/><ellipse cx="100" cy="93" rx="5" ry="7" fill="#51445E"/>'+
+    '<circle cx="62" cy="91" r="1.7" fill="white"/><circle cx="101" cy="91" r="1.7" fill="white"/>'+
+    '<path d="M76 103Q81 99 86 103L81 108Z" fill="#D892AD"/><path d="M74 111Q81 117 88 111" fill="none" stroke="#967283" stroke-width="2" stroke-linecap="round"/>'+
+    '<path d="M80 163L53 143C30 122 60 107 80 128C100 107 130 122 107 143Z" fill="#F49AB8" stroke="#E784A7" stroke-width="2"/>'+
+    '<ellipse cx="43" cy="140" rx="12" ry="9" fill="#FFFDFB" transform="rotate(25 43 140)"/><ellipse cx="119" cy="140" rx="12" ry="9" fill="#FFFDFB" transform="rotate(-25 119 140)"/>'+
+    '<ellipse cx="57" cy="172" rx="17" ry="9" fill="#FFFDFB"/><ellipse cx="104" cy="172" rx="17" ry="9" fill="#FFFDFB"/>'+
+    '<path d="M131 82L134 76L137 82L143 85L137 88L134 94L131 88L125 85Z" fill="#D5ADE6"/></svg>';
+}
+function cycleMetric(v,unit,signed){
+  return typeof v==='number'&&isFinite(v)?(signed&&v>0?'+':'')+r1(v)+unit:'—';
+}
+function cycleDates(month){
+  var days=[],d=month+'-01';
+  while(d.slice(0,7)===month&&d<=today()){days.push(d);d=shift(d,1);}
+  return days.reverse();
+}
+function viewCycle(){
+  var dates=cycleDates(cycleMonth),logs=state.menstrual.days;
+  var h='<section class="cycle-hero">'+cycleBunny()+'<div><span class="cycle-kicker">YOUR GENTLE COMPANION</span><h2>月月陪著你 🌷</h2><p>今天感覺怎樣？<br>慢慢記錄，我會在這裏陪你。</p></div></section>';
+  h+='<button class="btn fun" style="width:100%;margin-bottom:16px;min-height:48px" data-act="cycleEdit" data-date="'+today()+'">＋ 記錄今天</button>';
+  h+='<section class="card"><h2>月經與身體日記</h2><div class="cycle-toolbar"><button data-act="cyclePrev" aria-label="上一個月">‹</button><input id="cycleMonth" type="month" aria-label="選擇記錄月份" value="'+cycleMonth+'" max="'+today().slice(0,7)+'"><button data-act="cycleNext" aria-label="下一個月" '+(cycleMonth>=today().slice(0,7)?'disabled':'')+'>›</button></div>';
+  h+='<p class="cycle-note" style="margin:0 0 10px">點日期可補記或修改；向左滑動表格，查看戒指數據。</p><div class="cycle-scroll" tabindex="0" role="region" aria-label="月經及戒指每日記錄"><table class="cycle-table"><caption>'+esc(cycleMonth)+' · 手動記錄與 Ultrahuman 每日數據'+(DEMO?'（示範）':'')+'</caption><thead><tr><th scope="col">日期</th><th scope="col">我的記錄</th><th scope="col">皮膚溫度</th><th scope="col">溫差</th><th scope="col">靜息心率</th><th scope="col">HRV</th><th scope="col">睡眠</th></tr></thead><tbody>';
+  dates.forEach(function(d){
+    var l=logs[d],u=state.uh.days[d]||{},desc='<small>未記錄</small>';
+    if(l){desc=(l.start?'<span class="cycle-tag">月經開始</span><br>':'')+esc(CYCLE_FLOW[l.flow]||'未記錄經量');
+      if(l.pain!=null)desc+='<small>疼痛 '+esc(l.pain)+'/10</small>';
+      if(Array.isArray(l.symptoms)&&l.symptoms.length)desc+='<small>'+esc(l.symptoms.join('、'))+'</small>';
+      if(l.note)desc+='<small>'+esc(l.note)+'</small>';
+    }
+    h+='<tr><td><button data-act="cycleEdit" data-date="'+d+'" aria-label="記錄 '+d+'">'+(+d.slice(5,7))+'/'+(+d.slice(8))+'<small>星期'+wk(d)+(d===today()?' · 今天':'')+'</small></button></td><td>'+desc+'</td><td>'+cycleMetric(u.skinTemp,' °C')+'</td><td>'+cycleMetric(u.tempDev,' °C',true)+'</td><td>'+cycleMetric(u.rhr,' bpm')+'</td><td>'+cycleMetric(u.hrv,' ms')+'</td><td>'+(typeof u.totalSleepMin==='number'?Math.floor(u.totalSleepMin/60)+'時 '+Math.round(u.totalSleepMin%60)+'分':'—')+'</td></tr>';
+  });
+  h+='</tbody></table></div><p class="cycle-note">— 表示未有數據，不代表 0。戒指目前保留最近 60 日數據；手動月經記錄會保留。';
+  if(state.uh.lastSync)h+='<br>最近同步：'+esc(state.uh.lastSync.replace('T',' ').replace(/([+-]\d\d:\d\d|Z)$/,''));
+  h+='</p></section><section class="card"><h2>💍 戒指提供甚麼？</h2><p class="cycle-note" style="margin:0">這裏顯示戒指的皮膚溫度、相對基準溫差、靜息心率、HRV 及睡眠，方便與自己的記錄對照。皮膚溫度不是基礎體溫。現有連線未提供月經日期、週期階段或排卵結果，因此這頁不會推算排卵或安全期。</p><p class="cycle-note">月經記錄只留在曉明的私人 app，不加入父女挑戰或分享卡。</p></section>';
+  return h;
+}
+function cycleValidDate(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)&&d>='1900-01-01'&&d<=today()&&shift(d,0)===d;}
+function openCycle(d){
+  if(!cycleValidDate(d))return;
+  var l=state.menstrual.days[d]||{};
+  var h=head('🌷 '+(state.menstrual.days[d]?'修改記錄':'記錄這一天'))+'<div class="cycle-form"><label class="field"><span>日期</span><input id="cycleDate" type="date" min="1900-01-01" max="'+today()+'" value="'+d+'"></label><div class="cycle-pair"><label class="field"><span>出血量</span><select id="cycleFlow">';
+  Object.keys(CYCLE_FLOW).forEach(function(k){h+='<option value="'+k+'"'+((l.flow||'')===k?' selected':'')+'>'+CYCLE_FLOW[k]+'</option>';});
+  h+='</select></label><label class="field"><span>疼痛（0–10）</span><select id="cyclePain"><option value="">未記錄</option>';
+  for(var n=0;n<=10;n++)h+='<option value="'+n+'"'+(l.pain===n?' selected':'')+'>'+n+(n===0?' · 不痛':n===10?' · 最痛':'')+'</option>';
+  h+='</select></label></div><label class="cycle-start"><input id="cycleStart" type="checkbox"'+(l.start?' checked':'')+'>這天是今次月經第一天</label><span>身體感覺（可選多項）</span><div class="cycle-checks">';
+  CYCLE_SYMPTOMS.forEach(function(x,i){h+='<label><input type="checkbox" name="cycleSymptom" value="'+i+'"'+((l.symptoms||[]).indexOf(x)>=0?' checked':'')+'>'+x+'</label>';});
+  h+='</div><label class="field"><span>備註（選填）</span><textarea id="cycleNote" rows="2" maxlength="240" placeholder="想記下的感覺…">'+esc(l.note||'')+'</textarea></label><button class="btn fun" style="width:100%;min-height:48px" data-act="cycleSave">儲存記錄</button>';
+  if(state.menstrual.days[d])h+='<button class="btn" style="width:100%;margin-top:8px" data-act="cycleDelete" data-date="'+d+'">刪除這天的手動記錄</button>';
+  h+='<p class="cycle-note">只儲存你填寫的記錄，不會改動戒指數據。轉換日期會載入該日記錄，未儲存內容不會保留。</p></div>';
+  openSheet(h);
+}
+function saveCycle(){
+  var d=$('cycleDate').value,flow=$('cycleFlow').value,p=$('cyclePain').value,start=$('cycleStart').checked;
+  if(!cycleValidDate(d)){toast('請選擇今天或之前的有效日期');return;}
+  if(start&&(!flow||flow==='none')){toast('請先選擇月經開始當天的出血量');return;}
+  var symptoms=Array.from(document.querySelectorAll('input[name="cycleSymptom"]:checked')).map(function(x){return CYCLE_SYMPTOMS[+x.value];});
+  var note=$('cycleNote').value.trim().slice(0,240);
+  if(!flow&&p===''&&!symptoms.length&&!note&&!start){toast('請先填寫至少一項記錄');return;}
+  var entry={flow:flow,pain:p===''?null:+p,start:start,symptoms:symptoms,note:note,updatedAt:new Date().toISOString()};
+  cycleMonth=d.slice(0,7);
+  mutate(function(s){s.menstrual.days[d]=JSON.parse(JSON.stringify(entry));});closeSheet();toast(DEMO?'示範記錄已更新，未寫入帳戶':'已記低；儲存狀態見頁底');
+}
+function moveCycleMonth(n){
+  var parts=cycleMonth.split('-'),d=new Date(+parts[0],+parts[1]-1+n,1),m=fmt(d).slice(0,7);
+  if(m<=''+today().slice(0,7)&&m>='1900-01'){cycleMonth=m;render();}
+}
+
 /* ---------- sheets ---------- */
 function openSheet(h){$('sheet').innerHTML=h;$('sheet').classList.add('show');$('veil').classList.add('show');}
 function closeSheet(){$('sheet').classList.remove('show');$('veil').classList.remove('show');chatOpen=false;}
@@ -1024,7 +1138,15 @@ document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act],[data-tab]'); if(!b)return;
   if(b.hasAttribute('data-tab')){tab=b.getAttribute('data-tab');if(tab==='fun')loadDuo();render();scrollTo(0,0);return;}
   var a=b.getAttribute('data-act'), i=+b.getAttribute('data-i');
-  if(a==='close')closeSheet();
+  if(a==='cycleEdit')openCycle(b.getAttribute('data-date'));
+  else if(a==='cycleSave')saveCycle();
+  else if(a==='cyclePrev')moveCycleMonth(-1);
+  else if(a==='cycleNext')moveCycleMonth(1);
+  else if(a==='cycleDelete'){
+    if(!b.getAttribute('data-sure')){b.setAttribute('data-sure','1');b.textContent='再按一次確認刪除';return;}
+    var cd=b.getAttribute('data-date');mutate(function(s){delete s.menstrual.days[cd];});closeSheet();toast('已移除手動記錄');
+  }
+  else if(a==='close')closeSheet();
   else if(a==='cam')$('camIn').click();
   else if(a==='lib')$('libIn').click();
   else if(a==='type')startType();
@@ -1062,6 +1184,13 @@ document.addEventListener('click',function(e){
   else if(a==='chatPic')$('chatIn').click();
   else if(a==='chatSend')chatSend();
 });
+document.addEventListener('change',function(e){
+  if(e.target.id==='cycleMonth'){
+    var m=e.target.value;if(/^\d{4}-\d{2}$/.test(m)&&m>='1900-01'&&m<=today().slice(0,7)&&+m.slice(5)>=1&&+m.slice(5)<=12){cycleMonth=m;render();}
+    else e.target.value=cycleMonth;
+  }
+  if(e.target.id==='cycleDate'){var d=e.target.value;if(cycleValidDate(d))openCycle(d);}
+});
 document.addEventListener('input',function(e){
   var el=e.target,a=el.getAttribute('data-act'),i=+el.getAttribute('data-i');
   if(a==='gi'){draft.edited=true;draftGrams(i,+el.value||0);var sm=el.closest('.row').querySelector('small');if(sm)sm.textContent=Math.round(draft.items[i].kcal)+' kcal';}
@@ -1089,6 +1218,8 @@ function demoState(){
   }
   s.meals.push({id:'dm0',date:t,time:'08:30',slot:'早',items:[{name:'乳酪',grams:150,kcal:90,protein:15,carb:6,fat:0,fiber:0,emoji:'🥣'}]});
   s.meals.push({id:'dm00',date:t,time:'13:10',slot:'午',items:[{name:'叉燒飯',grams:400,kcal:620,protein:28,carb:88,fat:17,fiber:2,emoji:'🍱'}]});
+  s.menstrual.days[shift(t,-2)]={flow:'medium',pain:3,start:true,symptoms:['腹痛'],note:'示範記錄',updatedAt:new Date().toISOString()};
+  s.menstrual.days[shift(t,-1)]={flow:'light',pain:1,start:false,symptoms:[],note:'',updatedAt:new Date().toISOString()};
   s.uh.lastSync=new Date().toISOString();
   for(var j=0;j<5;j++)s.badges.push({key:'demo'+j,id:'mood7',ic:['😊','📸','💧','🌙','👟'][j],name:'示範',date:shift(t,-j*3)});
   s.settings.catAcc='bow'; s.friends=['capy','penguin'];
