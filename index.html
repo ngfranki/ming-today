@@ -304,6 +304,23 @@
   .game-active .tt-mascot{width:64px}
   .game-active .tt-intro h2{font-size:25px}
   .tt-tray{position:sticky;top:8px;z-index:10}
+.game-picker{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}.game-picker button{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px;font-size:14px;font-weight:700;min-height:56px}.game-picker button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}.game-picker small{display:block;font-size:11px;font-weight:400;margin-top:3px;opacity:.7}
+.ac-play{background:linear-gradient(150deg,var(--sun-soft),var(--card) 65%,var(--lav-soft));border:1px solid var(--line);border-radius:24px;padding:14px 8px;box-shadow:var(--shadow)}.ac-score{display:flex;justify-content:space-between;padding:0 8px 10px}.ac-score div:last-child{text-align:right}.ac-score small{display:block;color:var(--muted);font-size:12px}.ac-score b{font-size:26px}.ac-score b span{font-size:14px;color:var(--muted)}.ac-progress{display:block;width:100%;height:8px;border:0;border-radius:8px;overflow:hidden;accent-color:var(--lav)}.ac-progress::-webkit-progress-bar{background:var(--lav-soft)}.ac-progress::-webkit-progress-value{background:var(--lav)}
+.ac-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;padding:6px;background:var(--lav-soft);border-radius:17px}.ac-cell{min-width:0;aspect-ratio:1;border-radius:10px;background:#FFFCF6;border:1px solid #E1D3C0;box-shadow:0 3px 0 #CDBDA7;padding:1px;touch-action:manipulation}.ac-cell svg{display:block;width:100%;height:100%;pointer-events:none}.ac-cell.selected{outline:3px solid #9B87F5;outline-offset:0;background:#EDE5FF;transform:translateY(-2px)}.ac-cell.hint{outline:3px solid #E9A121;background:#FFF0B7}.ac-cell.clearing{opacity:.25;transform:scale(.75);transition:transform .15s,opacity .15s}.ac-cell:focus-visible{outline:3px solid var(--coral)}.ac-controls{grid-template-columns:1fr 1fr;margin-top:14px}.ac-result{text-align:center;padding:12px 6px 0}.ac-result h3{font-size:18px;margin:5px}.ac-result p{font-size:13px;color:var(--muted);line-height:1.6}@media(prefers-reduced-motion:reduce){.ac-cell.clearing{transition:none}}
+
+.tt-levels-four{grid-template-columns:repeat(2,1fr)}
+.tt-extreme-note{padding:11px 14px;border-radius:16px;background:var(--coral-soft);font-size:12px;line-height:1.7;margin:0 0 14px}
+
+.game-screen-bar{display:flex;justify-content:flex-end;align-items:center;min-height:48px;margin-bottom:8px;background:var(--bg)}
+.game-screen-bar button{min-height:44px;padding:8px 14px;border-radius:14px;background:var(--lav-soft);font-weight:700;font-size:14px}
+body.game-fullscreen{overflow:hidden}
+.game-fullscreen #main{position:fixed;inset:0;z-index:25;background:var(--bg);overflow:auto;overscroll-behavior:contain;padding:env(safe-area-inset-top) max(12px,env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+.game-fullscreen #main> *{max-width:560px;margin-left:auto;margin-right:auto}
+.game-fullscreen .game-screen-bar{position:sticky;top:0;z-index:12;padding:4px 0}
+.game-fullscreen .tt-tray{top:60px}
+.game-fullscreen nav.tabs,.game-fullscreen header.top,.game-fullscreen #fab{display:none!important}
+.game-fullscreen .tt-intro{display:none}
+
 </style>
 </head>
 <body>
@@ -349,7 +366,7 @@
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20261001-1927';
+var APP_VER='20261001-1955';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -1579,6 +1596,7 @@ function updateAppNow(){
   var button=$('updateAppButton'),status=$('updateAppStatus');
   if(!button||!status||button.disabled)return;
   function blocked(){
+    if(typeof acBusy!=='undefined'&&acBusy){status.textContent='遊戲正在結算，請稍候再更新。';return true;}
     if(saving||pending.length){status.textContent='還有記錄正在儲存，或等待連線。請待頁底顯示已儲存後，再按更新。';return true;}
     if(settingsFormSnapshot()!==settingsUpdateSnapshot){status.textContent='設定有未儲存的修改。請先按下方「儲存」，再重新打開設定更新 App。';return true;}
     return false;
@@ -1693,7 +1711,7 @@ function chatSend(){
 }
 
 /* TRIPLE_TILE_BEGIN — local-only game, independent of health state. */
-var TT_LEVELS={easy:{name:'輕鬆',total:36,capacity:8,types:5,layers:2},normal:{name:'標準',total:54,capacity:7,types:7,layers:3},hard:{name:'挑戰',total:72,capacity:6,types:9,layers:3}};
+var TT_LEVELS={easy:{name:'輕鬆',total:36,capacity:8,types:5,layers:2},normal:{name:'標準',total:54,capacity:7,types:7,layers:3},hard:{name:'挑戰',total:72,capacity:6,types:9,layers:3},extreme:{name:'超級難',total:126,capacity:5,types:9,layers:6}};
 var TT_ANIMALS=['miu','bunny','capy','shiba','penguin','koala','panda','fox','otter'];
 var TT_NAMES=['喵喵','兔仔','水豚','柴犬','企鵝','樹熊','熊貓','狐狸','海獺'];
 var ttGame=null,ttLoaded=false,ttHint=null,ttNotice='',ttSaved=true;
@@ -1705,15 +1723,38 @@ function ttLayout(level){
   if(level==='easy'){add(6,4,0,0,0);add(4,3,1,.5,.5);}
   if(level==='normal'){add(6,5,0,0,0);add(6,3,1,.5,.5);add(3,2,2,1.75,1.5);}
   if(level==='hard'){add(6,6,0,0,0);add(6,4,1,.5,.5);add(4,3,2,1.25,1.25);}
+  if(level==='extreme'){add(6,6,0,0,0);add(6,5,1,.5,.25);add(6,4,2,.25,.75);add(6,3,3,.5,1.25);add(6,2,4,.25,1.75);add(6,1,5,.5,2.25);}
   return out;
 }
+
+// Interleave unfinished triples while preserving a winning five-slot path.
+function ttBraidedKinds(groups,types){
+  var left=Array(types).fill(0),held=Array(types).fill(0),load=0,out=[];
+  groups.forEach(function(k){left[k]+=3;});
+  while(out.length<groups.length*3){
+    var eligible=[];
+    for(var k=0;k<types;k++){
+      if(!left[k])continue;
+      var next=load+(held[k]===2?-2:1),copy=held.slice();copy[k]=(copy[k]+1)%3;
+      if(next<5&&(next<4||copy.indexOf(2)>=0))eligible.push(k);
+    }
+    var preferred=eligible.filter(function(k){return load<3?held[k]===0:load===3?held[k]===1:held[k]===2;});
+    var pool=preferred.length?preferred:eligible,k=pool[Math.floor(Math.random()*pool.length)];
+    if(k==null)throw new Error('No valid five-slot sequence');
+    left[k]--;load+=held[k]===2?-2:1;held[k]=(held[k]+1)%3;out.push(k);
+  }
+  return out;
+}
+function ttToolsLeft(kind){if(!ttGame||ttGame.level!=='extreme')return Infinity;return Math.max(0,(kind==='undo'?3:2)-(ttGame[kind+'Used']||0));}
+
 function ttNew(level){
   var cfg=TT_LEVELS[level],tiles=ttLayout(level),removed=new Set(),solution=[];
-  // A legal removal order is chosen first; each successive triple receives one animal.
+  // A legal removal order is chosen first; extreme interleaves several unfinished triples.
   // This supplies a complete winning path without relying on a lucky random deal.
   while(solution.length<tiles.length){var free=tiles.filter(function(t){return ttFree(tiles,removed,t);}),t=free[Math.floor(Math.random()*free.length)];solution.push(t.id);removed.add(t.id);}
   var groups=[];for(var g=0;g<tiles.length/3;g++)groups.push(g%cfg.types);ttShuffle(groups);
-  solution.forEach(function(id,i){tiles[id].kind=groups[Math.floor(i/3)];});
+  var kinds=level==='extreme'?ttBraidedKinds(groups,cfg.types):null;
+  solution.forEach(function(id,i){tiles[id].kind=kinds?kinds[i]:groups[Math.floor(i/3)];});
   return {version:1,level:level,tiles:tiles,picks:[],solution:solution};
 }
 function ttState(game){
@@ -1723,6 +1764,7 @@ function ttState(game){
 }
 function ttValid(g){
   if(!g||g.version!==1||!Object.prototype.hasOwnProperty.call(TT_LEVELS,g.level)||!Array.isArray(g.tiles)||!Array.isArray(g.picks))return false;
+  if(g.level==='extreme'&&['undo','hint'].some(function(k){var n=g[k+'Used']==null?0:g[k+'Used'];return !Number.isInteger(n)||n<0||n>(k==='undo'?3:2);}))return false;
   var layout=ttLayout(g.level),cfg=TT_LEVELS[g.level];
   if(g.tiles.length!==cfg.total||g.picks.length>cfg.total)return false;
   if(g.tiles.some(function(t,i){var l=layout[i];return !t||t.id!==i||t.x!==l.x||t.y!==l.y||t.z!==l.z||!Number.isInteger(t.kind)||t.kind<0||t.kind>=cfg.types;}))return false;
@@ -1751,18 +1793,19 @@ function ttPick(id){
   ttNotice=after.won?'喵喵：全員回家！你的觀察力閃閃發光。😽':after.lost?'喵喵：收集槽滿了，撤回一步再想想，我陪你。':after.matched>before.matched?['三位朋友一起回家了，做得好！🐾','配成一組！喵喵幫你拍拍手。😸','找到同伴了，繼續慢慢來。🌷'][after.matched%3]:'已接住'+TT_NAMES[tile.kind]+'，再找牠的同伴。';
   ttSave();render();if(after.won)confetti();
 }
-function ttUndo(){if(!ttGame||!ttGame.picks.length)return;ttGame.picks.pop();ttHint=null;ttNotice='退一步也沒關係，這次換個想法。🐾';ttSave();render();}
+function ttUndo(){if(!ttGame||!ttGame.picks.length||!ttToolsLeft('undo'))return;if(ttGame.level==='extreme')ttGame.undoUsed=(ttGame.undoUsed||0)+1;ttGame.picks.pop();ttHint=null;ttNotice='退一步也沒關係，這次換個想法。🐾';ttSave();render();}
 function ttGiveHint(){
-  if(!ttGame)return;var st=ttState(ttGame);if(st.won||st.lost)return;
+  if(!ttGame||!ttToolsLeft('hint'))return;var st=ttState(ttGame);if(st.won||st.lost)return;
   var free=ttGame.tiles.filter(function(t){return ttFree(ttGame.tiles,st.removed,t);});
   free.sort(function(a,b){function score(t){return st.tray.filter(function(id){return ttGame.tiles[id].kind===t.kind;}).length*10+free.filter(function(x){return x.kind===t.kind;}).length;}return score(b)-score(a);});
-  if(free.length){ttHint=free[0].id;ttNotice='看看亮起的'+TT_NAMES[free[0].kind]+'，留意牠還有多少同伴。';render();}
+  if(free.length){if(ttGame.level==='extreme'){ttGame.hintUsed=(ttGame.hintUsed||0)+1;ttSave();}ttHint=free[0].id;ttNotice='看看亮起的'+TT_NAMES[free[0].kind]+'，留意牠還有多少同伴。';render();}
 }
-function viewGame(){
+function viewTripleTile(){
   ttLoad();var cfg=ttGame?TT_LEVELS[ttGame.level]:null,st=ttGame?ttState(ttGame):null;
   var h='<section class="tt-intro"><div><span class="tt-eyebrow">喵喵遊戲屋 · 01</span><h2>Triple Tile <span>動物好朋友</span></h2><p>三隻一組，一起回家 🐾</p></div><div class="tt-mascot" aria-hidden="true">'+catSVG('home','bow','happy')+'</div></section>';
-  h+='<div class="tt-levels" role="group" aria-label="遊戲難度">'+Object.keys(TT_LEVELS).map(function(l){var c=TT_LEVELS[l];return '<button data-act="ttChoose" data-level="'+l+'" aria-pressed="'+!!(ttGame&&ttGame.level===l)+'" class="'+(ttGame&&ttGame.level===l?'on':'')+'"><b>'+({easy:'🌱',normal:'🌼',hard:'🌟'}[l])+' '+c.name+'</b><small>'+c.total+' 張 · '+c.capacity+' 格</small></button>';}).join('')+'</div>';
+  h+='<div class="tt-levels tt-levels-four" role="group" aria-label="遊戲難度">'+Object.keys(TT_LEVELS).map(function(l){var c=TT_LEVELS[l];return '<button data-act="ttChoose" data-level="'+l+'" aria-pressed="'+!!(ttGame&&ttGame.level===l)+'" class="'+(ttGame&&ttGame.level===l?'on':'')+'"><b>'+({easy:'🌱',normal:'🌼',hard:'🌟',extreme:'🔥'}[l])+' '+c.name+'</b><small>'+c.total+' 張 · '+c.capacity+' 格</small></button>';}).join('')+'</div>';
   if(!ttGame)return h+'<section class="card tt-welcome"><div aria-hidden="true">🐱 🐰 🐼</div><h3>選個難度，開始找朋友</h3><p>點沒有被蓋住的動物牌，放進收集槽。三隻相同動物會自動消除。</p><p>清空所有牌就過關；收集槽放滿就暫停。可以撤回再試，不用趕時間。</p><button class="btn fun" data-act="ttBegin" data-level="easy">先玩輕鬆版</button></section>';
+  if(ttGame.level==='extreme')h+='<p class="tt-extreme-note">🔥 126 張 · 6 層疊牌 · 9 種動物 · 只有 5 格<br>每局限 3 次撤回、2 次提示，先想清楚再出手。</p>';
   var cap=cfg.capacity;
   h+='<section class="tt-play"><div class="tt-progress"><b>'+cfg.name+' · 已找到 '+st.matched+' / '+cfg.total/3+' 組</b><span>剩 '+(cfg.total-st.removed.size)+' 張</span></div><div class="tt-tray" style="--slots:'+cap+'" aria-label="收集槽 '+st.tray.length+' / '+cap+' 格">';
   // Group tray animals visually; removal replay retains the exact order for undo.
@@ -1773,17 +1816,98 @@ function viewGame(){
   h+='<div class="tt-board" style="aspect-ratio:6.6 / '+height+'" aria-label="動物牌桌">';
   ttGame.tiles.forEach(function(t){if(st.removed.has(t.id))return;var free=ttFree(ttGame.tiles,st.removed,t);h+='<button class="tt-tile'+(!free?' covered':'')+(ttHint===t.id?' hint':'')+'" style="left:'+(t.x/6.6*100)+'%;top:'+(t.y/height*100)+'%;z-index:'+(t.z+1)+'" data-act="ttPick" data-id="'+t.id+'" aria-label="'+TT_NAMES[t.kind]+(free?'，可選':'，被蓋住')+'" '+(!free||st.lost||st.won?'disabled':'')+'>'+ttArt(t.kind)+'</button>';});
   if(st.won)h+='<div class="tt-result"><span>🎉</span><h3>好朋友全員到齊！</h3><p>剛才每一步，都有你的細心。</p><button class="btn fun" data-act="ttBegin" data-level="'+ttGame.level+'">再玩一局</button></div>';
-  h+='</div><div class="tt-controls"><button data-act="ttUndo" '+(!ttGame.picks.length?'disabled':'')+'>↶ 撤回</button><button data-act="ttHint" '+(st.won||st.lost?'disabled':'')+'>💡 提示</button><button data-act="ttChoose" data-level="'+ttGame.level+'">↻ 新一局</button></div><p class="tt-footnote">'+(ttSaved?'進度保留在這部裝置 · 不計時，慢慢玩':'這部裝置暫時無法儲存進度，關閉頁面後可能遺失')+'</p></section><details class="tt-rules"><summary>玩法小提示</summary><p>只有完全沒有被上層牌蓋住的動物可以選。集齊三隻會自動清走；最後一格若剛好湊成三隻，會先消除，不算輸。</p><p>提示只提供可選的配對方向，不保證每一步都能解開；遇到卡位可以撤回，包括剛才已消除的一組。不同難度會增加牌數、疊層及動物種類，並減少收集格。</p></details>';
+  h+='</div><div class="tt-controls"><button data-act="ttUndo" '+(!ttGame.picks.length||!ttToolsLeft('undo')?'disabled':'')+'>↶ 撤回'+(ttGame.level==='extreme'?' '+ttToolsLeft('undo')+'/3':'')+'</button><button data-act="ttHint" '+(st.won||st.lost||!ttToolsLeft('hint')?'disabled':'')+'>💡 提示'+(ttGame.level==='extreme'?' '+ttToolsLeft('hint')+'/2':'')+'</button><button data-act="ttChoose" data-level="'+ttGame.level+'">↻ 新一局</button></div><p class="tt-footnote">'+(ttSaved?'進度保留在這部裝置 · 不計時，慢慢玩':'這部裝置暫時無法儲存進度，關閉頁面後可能遺失')+'</p></section><details class="tt-rules"><summary>玩法小提示</summary><p>只有完全沒有被上層牌蓋住的動物可以選。集齊三隻會自動清走；最後一格若剛好湊成三隻，會先消除，不算輸。</p><p>提示只提供可選的配對方向，不保證每一步都能解開；遇到卡位可以撤回，包括剛才已消除的一組。不同難度會增加牌數、疊層及動物種類，並減少收集格。</p></details>';
   return h;
 }
 /* TRIPLE_TILE_END */
+
+
+/* GAME_FULLSCREEN_BEGIN */
+var gameFullscreen=false,gameNativeFullscreen=false,gameScreenScroll=0;
+function gameScreenSync(){
+ document.body.classList.toggle('game-fullscreen',gameFullscreen);
+ var b=document.querySelector('[data-act="gameFullscreen"]');
+ if(b){b.textContent=gameFullscreen?'↙ 退出全螢幕':'⛶ 全螢幕';b.setAttribute('aria-pressed',String(gameFullscreen));}
+}
+async function toggleGameFullscreen(){
+ if(gameFullscreen){
+  gameFullscreen=false;gameScreenSync();
+  if(document.fullscreenElement){try{await document.exitFullscreen();}catch(e){}}
+  gameNativeFullscreen=false;window.scrollTo(0,gameScreenScroll);return;
+ }
+ if(tab!=='game')return;
+ gameScreenScroll=window.scrollY;gameFullscreen=true;gameScreenSync();$('main').scrollTop=0;
+ // Full-viewport mode also works when the browser cannot hide its own chrome.
+ if(document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen();gameNativeFullscreen=!!document.fullscreenElement;}catch(e){gameNativeFullscreen=false;}}
+}
+document.addEventListener('fullscreenchange',function(){
+ if(document.fullscreenElement){gameNativeFullscreen=true;return;}
+ if(gameNativeFullscreen){gameNativeFullscreen=false;gameFullscreen=false;gameScreenSync();window.scrollTo(0,gameScreenScroll);}
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&gameFullscreen&&!document.fullscreenElement)toggleGameFullscreen();});
+/* GAME_FULLSCREEN_END */
+
+/* ANIMAL_CRUSH_BEGIN */
+var AC_LEVELS={easy:{name:'輕鬆',types:5,moves:24,target:600},normal:{name:'標準',types:6,moves:20,target:900},hard:{name:'挑戰',types:7,moves:18,target:1200}};
+var acGame=null,acLoaded=false,acBusy=false,acSelected=null,acHint=[],acClearing=[],acNotice='',acSaved=true,gameChoice=null;
+function gameKey(){return 'mingGameChoice'+(DEMO?'Demo':'');}
+function viewGame(){
+ if(!gameChoice){try{gameChoice=localStorage.getItem(gameKey());}catch(e){}if(gameChoice!=='crush')gameChoice='tile';}
+ return '<div class="game-screen-bar"><button data-act="gameFullscreen" aria-pressed="'+gameFullscreen+'">'+(gameFullscreen?'↙ 退出全螢幕':'⛶ 全螢幕')+'</button></div><div class="game-picker" role="group" aria-label="選擇遊戲"><button data-act="gameChoose" data-game="tile" aria-pressed="'+(gameChoice==='tile')+'">🐾 Triple Tile<small>疊牌三消</small></button><button data-act="gameChoose" data-game="crush" aria-pressed="'+(gameChoice==='crush')+'">🐱 Animal Crush<small>交換三消</small></button></div>'+(gameChoice==='crush'?viewCrush():viewTripleTile());
+}
+function chooseGame(which){if(which!=='tile'&&which!=='crush')return;gameChoice=which;try{localStorage.setItem(gameKey(),which);}catch(e){}render();}
+function acAdjacent(a,b){return Number.isInteger(a)&&Number.isInteger(b)&&a>=0&&a<36&&b>=0&&b<36&&(Math.floor(a/6)===Math.floor(b/6)&&Math.abs(a-b)===1||Math.abs(a-b)===6);}
+function acMatches(board){var found=new Set();for(var axis=0;axis<2;axis++)for(var line=0;line<6;line++){var run=[];for(var p=0;p<=6;p++){var id=axis?p*6+line:line*6+p;if(p<6&&board[id]!=null&&(!run.length||board[id]===board[run[0]]))run.push(id);else{if(run.length>=3)run.forEach(function(i){found.add(i);});run=p<6&&board[id]!=null?[id]:[];}}}return Array.from(found);}
+function acFindMove(board){for(var a=0;a<36;a++)for(var d of [1,6]){var b=a+d;if(!acAdjacent(a,b))continue;var copy=board.slice(),v=copy[a];copy[a]=copy[b];copy[b]=v;if(acMatches(copy).length)return [a,b];}return [];}
+function acFresh(types){for(var tries=0;tries<500;tries++){var b=[];for(var i=0;i<36;i++){var opts=[];for(var k=0;k<types;k++)if(!(i%6>=2&&b[i-1]===k&&b[i-2]===k)&&!(i>=12&&b[i-6]===k&&b[i-12]===k))opts.push(k);b.push(opts[Math.floor(Math.random()*opts.length)]);}if(acFindMove(b).length)return b;}var b=Array.from({length:36},function(_,i){return(i+Math.floor(i/6))%types;});b[0]=0;b[1]=1;b[2]=0;b[7]=0;return b;}
+function acDrop(board,matched,types){var gone=new Set(matched),out=board.slice();for(var col=0;col<6;col++){var keep=[];for(var row=5;row>=0;row--){var id=row*6+col;if(!gone.has(id))keep.push(board[id]);}for(var row=5;row>=0;row--)out[row*6+col]=keep.length?keep.shift():Math.floor(Math.random()*types);}return out;}
+function acStatus(g){return g.score>=AC_LEVELS[g.level].target?'won':g.moves===0?'lost':'playing';}
+function acKey(){return 'mingAnimalCrushV1'+(DEMO?'Demo':'');}
+function acValid(g){return !!g&&g.version===1&&Object.prototype.hasOwnProperty.call(AC_LEVELS,g.level)&&Array.isArray(g.board)&&g.board.length===36&&g.board.every(function(k){return Number.isInteger(k)&&k>=0&&k<AC_LEVELS[g.level].types;})&&Number.isInteger(g.moves)&&g.moves>=0&&g.moves<=AC_LEVELS[g.level].moves&&Number.isInteger(g.score)&&g.score>=0&&g.score<=10000000&&!acMatches(g.board).length;}
+function acLoad(){if(acLoaded)return;acLoaded=true;try{var g=JSON.parse(localStorage.getItem(acKey())||'null');if(acValid(g)){acGame=g;if(acStatus(g)==='playing'&&!acFindMove(g.board).length)g.board=acFresh(AC_LEVELS[g.level].types);}}catch(e){}}
+function acSave(){try{localStorage.setItem(acKey(),JSON.stringify(acGame));acSaved=true;}catch(e){acSaved=false;}}
+function acRender(){if(tab==='game'&&gameChoice==='crush')render();}
+function acBegin(level){if(acBusy||!Object.prototype.hasOwnProperty.call(AC_LEVELS,level))return;var c=AC_LEVELS[level];acGame={version:1,level:level,board:acFresh(c.types),moves:c.moves,score:0};acSelected=null;acHint=[];acClearing=[];acNotice='先點一隻，再點旁邊的朋友交換位置。';acSave();closeSheet();acRender();}
+function acChoose(level){if(acBusy||!Object.prototype.hasOwnProperty.call(AC_LEVELS,level))return;if(acGame&&acStatus(acGame)==='playing'&&acGame.moves<AC_LEVELS[acGame.level].moves)openSheet(head('開新一局？')+'<p>目前的動物消消樂進度會換成新一局。</p><div class="btnrow"><button class="btn" data-act="close">繼續這局</button><button class="btn fun" data-act="acBegin" data-level="'+level+'">開新一局</button></div>');else acBegin(level);}
+function acDelay(){return new Promise(function(resolve){setTimeout(resolve,window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:180);});}
+async function acSwap(a,b){
+ if(acBusy||!acGame||acStatus(acGame)!=='playing'||!acAdjacent(a,b))return;
+ var board=acGame.board.slice(),v=board[a];board[a]=board[b];board[b]=v;acSelected=null;acHint=[];
+ if(!acMatches(board).length){acNotice='這次未連成三隻，步數不扣，換個方向試試。🐾';acRender();return;}
+ acBusy=true;acGame.board=board;acGame.moves--;var combo=0,total=0;
+ try{
+  while(acMatches(acGame.board).length&&combo<50){var hit=acMatches(acGame.board);combo++;total+=hit.length*10*Math.min(combo,3);acGame.score+=hit.length*10*Math.min(combo,3);acClearing=hit;acNotice=combo>1?'連鎖 '+combo+'！動物朋友接力回家。✨':'找到 '+hit.length+' 位同伴！😸';acRender();await acDelay();acGame.board=acDrop(acGame.board,hit,AC_LEVELS[acGame.level].types);acClearing=[];acRender();await acDelay();}
+  if(acMatches(acGame.board).length||!acFindMove(acGame.board).length){acGame.board=acFresh(AC_LEVELS[acGame.level].types);acNotice='動物朋友換了新位置，不扣步數，繼續找同伴！';}else acNotice='這一步 +'+total+' 分'+(combo>1?'，'+combo+' 連鎖！':'！')+' 喵喵替你拍拍手。';
+  var status=acStatus(acGame);if(status==='won')acNotice='目標達成！你的觀察力今天閃閃發光。😽';else if(status==='lost')acNotice='這次先到這裏，再開一局試試吧，我陪你。';
+  acSave();if(status==='won'&&tab==='game'&&gameChoice==='crush')confetti();
+ }finally{acBusy=false;acClearing=[];acRender();}
+}
+function acTap(id){if(acBusy||!acGame||acStatus(acGame)!=='playing'||!Number.isInteger(id)||id<0||id>=36)return;if(acSelected===id){acSelected=null;acRender();return;}if(acSelected!=null&&acAdjacent(acSelected,id)){acSwap(acSelected,id);return;}acSelected=id;acHint=[];acNotice='再點上、下、左或右相鄰的動物。';acRender();}
+function acHelp(){if(acBusy||!acGame||acStatus(acGame)!=='playing')return;acHint=acFindMove(acGame.board);if(!acHint.length){acGame.board=acFresh(AC_LEVELS[acGame.level].types);acSave();acHint=acFindMove(acGame.board);}acSelected=null;acNotice='交換金色框住的兩位朋友，就能連成一組。';acRender();}
+function viewCrush(){
+ acLoad();var h='<section class="tt-intro"><div><span class="tt-eyebrow">喵喵遊戲屋 · 02</span><h2>Animal Crush<span>動物消消樂</span></h2><p>交換一下，讓可愛連成一線 ✨</p></div><div class="tt-mascot" aria-hidden="true">'+catSVG('home','bow','happy')+'</div></section>';
+ h+='<div class="tt-levels" role="group" aria-label="三消難度">'+Object.keys(AC_LEVELS).map(function(l){var c=AC_LEVELS[l];return '<button data-act="acChoose" data-level="'+l+'" aria-pressed="'+!!(acGame&&acGame.level===l)+'" class="'+(acGame&&acGame.level===l?'on':'')+'" '+(acBusy?'disabled':'')+'><b>'+({easy:'🌱',normal:'🌼',hard:'🌟'}[l])+' '+c.name+'</b><small>'+c.moves+' 步 · '+c.target+' 分</small></button>';}).join('')+'</div>';
+ if(!acGame)return h+'<section class="card tt-welcome"><div>🐱 🐰 🐼</div><h3>一起玩動物三消！</h3><p>點兩隻相鄰的動物交換位置，橫向或直向連成三隻以上就消除。上面的朋友會跌下來，新朋友再補位。</p><p>在步數用完前達到目標分數就過關。無效交換不扣步數，提示免費使用。</p><button class="btn fun" data-act="acBegin" data-level="easy">開始輕鬆版</button></section>';
+ var c=AC_LEVELS[acGame.level],status=acStatus(acGame),done=!acBusy&&status!=='playing';
+ h+='<section class="ac-play"><div class="ac-score"><div><small>得分 / 目標</small><b>'+acGame.score+' <span>/ '+c.target+'</span></b></div><div><small>剩餘步數</small><b>'+acGame.moves+'</b></div></div><progress class="ac-progress" value="'+Math.min(acGame.score,c.target)+'" max="'+c.target+'" aria-label="目標分數進度"></progress><p class="tt-message" role="status" aria-live="polite">'+esc(acNotice||(status==='won'?'目標達成，再來一局嗎？':status==='lost'?'步數用完了，再試一次吧。':'點相鄰的朋友交換，連成三隻就消除。'))+'</p><div class="ac-grid" role="group" aria-label="六乘六動物三消棋盤" aria-busy="'+acBusy+'">';
+ acGame.board.forEach(function(k,id){h+='<button class="ac-cell'+(id===acSelected?' selected':'')+(acHint.indexOf(id)>=0?' hint':'')+(acClearing.indexOf(id)>=0?' clearing':'')+'" data-act="acTap" data-id="'+id+'" aria-pressed="'+(id===acSelected)+'" aria-label="第'+(Math.floor(id/6)+1)+'行第'+(id%6+1)+'列，'+TT_NAMES[k]+'" '+(acBusy||done?'disabled':'')+'>'+ttArt(k)+'</button>';});
+ h+='</div>';if(done)h+='<div class="ac-result"><h3>'+(status==='won'?'🎉 動物派對成功！':'🐾 再接再厲，喵喵陪你')+'</h3><p>'+(status==='won'?'完成目標，也記得讓眼睛休息一下。':'這次得到 '+acGame.score+' 分；下次可以先看看哪一步有連鎖。')+'</p></div>';
+ return h+'<div class="tt-controls ac-controls"><button data-act="acHelp" '+(acBusy||done?'disabled':'')+'>💡 提示</button><button data-act="acChoose" data-level="'+acGame.level+'" '+(acBusy?'disabled':'')+'>↻ 新一局</button></div><p class="tt-footnote">'+(acSaved?'同一裝置保留進度 · 有效交換才扣步數':'目前無法儲存進度，請保留此頁面')+'</p></section><details class="tt-rules"><summary>得分與玩法</summary><p>每消除一隻得 10 分。同一步的第 2 次連鎖得雙倍，第 3 次起得三倍。四隻、五隻及十字配對都可消除，交叉位置只計一次。</p><p>沒有可行交換時會自動重新排牌，不扣步數。這是可愛動物版交換三消，與 Triple Tile 分別保存進度。</p></details>';
+}
+/* ANIMAL_CRUSH_END */
 
 /* ---------- events ---------- */
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act],[data-tab]'); if(!b)return;
   if(b.hasAttribute('data-tab')){tab=b.getAttribute('data-tab');if(tab==='fun')loadDuo();render();scrollTo(0,0);return;}
   var a=b.getAttribute('data-act'), i=+b.getAttribute('data-i');
-  if(a==='ttChoose')ttChoose(b.getAttribute('data-level'));
+  if(a==='gameFullscreen')toggleGameFullscreen();
+  else if(a==='gameChoose')chooseGame(b.getAttribute('data-game'));
+  else if(a==='acChoose')acChoose(b.getAttribute('data-level'));
+  else if(a==='acBegin')acBegin(b.getAttribute('data-level'));
+  else if(a==='acTap')acTap(+b.getAttribute('data-id'));
+  else if(a==='acHelp')acHelp();
+  else if(a==='ttChoose')ttChoose(b.getAttribute('data-level'));
   else if(a==='ttBegin')ttBegin(b.getAttribute('data-level'));
   else if(a==='ttPick')ttPick(+b.getAttribute('data-id'));
   else if(a==='ttUndo')ttUndo();
