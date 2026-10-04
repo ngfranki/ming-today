@@ -322,6 +322,7 @@ body.game-fullscreen{overflow:hidden}
 .game-fullscreen .tt-intro{display:none}
 
 </style>
+<link rel="stylesheet" href="nutrition.css?v=20261004">
 </head>
 <body>
 <div id="gate" class="gate hide">
@@ -339,12 +340,13 @@ body.game-fullscreen{overflow:hidden}
     <div class="streak" id="streak">🔥 0</div>
     <button class="iconbtn" data-act="settings" aria-label="設定">⚙️</button>
   </header>
-  <main id="main"></main>
+  <main id="main"></main><div id="ming-food-page"></div>
   <div class="syncdot" id="sync"></div>
 </div>
 
 <nav class="tabs hide" id="tabs">
   <button data-tab="today" class="on">☀️ 今日</button>
+  <button data-tab="nutrition">🍽 飲食</button>
   <button data-tab="wall">📸 相牆</button>
   <button data-tab="fun">🏆 挑戰</button>
   <button data-tab="cycle">🌷 月經</button>
@@ -354,7 +356,7 @@ body.game-fullscreen{overflow:hidden}
 <div class="veil" id="veil"></div>
 <div class="sheet" id="sheet"></div>
 <div class="toast" id="toast"></div>
-<canvas id="fx"></canvas>
+<canvas id="fx"></canvas><div id="ming-food-root"></div>
 <input type="file" id="camIn" accept="image/*" capture="environment" class="hide">
 <input type="file" id="libIn" accept="image/*" class="hide">
 <input type="file" id="chatIn" accept="image/*" class="hide">
@@ -366,7 +368,7 @@ body.game-fullscreen{overflow:hidden}
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20261001-1955';
+var APP_VER='20261004-1152';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -374,7 +376,7 @@ var SLOTS=['早','午','下午','晚','宵'];
 var MOODS=[['😆','勁開心'],['😊','幾好'],['😐','一般'],['😴','好攰'],['😣','唔多好']];
 var $=function(id){return document.getElementById(id);};
 var KEY=''; try{KEY=localStorage.getItem('mingKey')||'';}catch(e){}
-var state=null, lastTs=null, pending=[], saving=false, tab='today', photos={}, duo=null;
+var nutritionCacheOwner='',state=null, lastTs=null, pending=[], saving=false, tab='today', photos={}, duo=null;
 
 /* ---------- helpers ---------- */
 function pad(n){return (n<10?'0':'')+n;}
@@ -416,7 +418,7 @@ function defaults(s){
   s.foods=BUILTIN.map(function(f){return JSON.parse(JSON.stringify(f));}).concat(custom);
   return s;
 }
-function cacheSave(){try{localStorage.setItem('mingCache',JSON.stringify({state:state,ts:lastTs}));}catch(e){}}
+function cacheSave(){try{localStorage.setItem('mingCache',JSON.stringify({state:state,ts:lastTs,owner:nutritionCacheOwner}));}catch(e){}}
 function setSync(t){$('sync').textContent=t;}
 
 function fetchRow(){
@@ -510,15 +512,16 @@ function render(){
   $('hello').innerHTML=(h<12?'早晨':h<18?'午安':'晚安')+'，'+esc(state.settings.name||'曉明')+(h<12?' ☀️':h<18?' 🌤️':' 🌙')+'<small>'+nice(t)+'</small>';
   var sk=streak(); $('streak').textContent='🔥 '+sk+' 日';
   document.querySelectorAll('nav.tabs button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===tab);});
-  $('main').innerHTML=tab==='today'?viewToday():tab==='wall'?viewWall():tab==='cycle'?viewCycle():tab==='game'?viewGame():viewFun();
+  $('main').innerHTML=tab==='today'?viewToday():tab==='wall'?viewWall():tab==='cycle'?viewCycle():tab==='game'?viewGame():tab==='nutrition'||tab==='trends'?'':viewFun();
   $('fab').classList.toggle('hide',tab==='game');
   $('app').classList.toggle('game-active',tab==='game');
+  document.body.classList.toggle('ming-food-page',tab==='nutrition'||tab==='trends');window.dispatchEvent(new Event('ming-state'));
   checkBadges(); checkFriends(); setTimeout(maybeCelebrate,700);
 }
 function viewToday(){
   var t=today(), u=uh(t), tt=totals(t), s=state.settings;
   var rec=band(u&&u.recovery,RL.rec), slp=band(u&&u.sleepScore,RL.slp), act=band(u&&u.movement,RL.act);
-  var html=catCard(u)+miuDailyCard()+'<section class="card ringcard"><button class="morebtn" data-act="detail">詳細 ›</button><div class="rings">'+
+  var html=catCard(u)+miuDailyCard()+'<button class="btn fun" style="width:100%;margin-bottom:14px" data-tab="nutrition">🍽 飲食小日記</button>'+'<section class="card ringcard"><button class="morebtn" data-act="detail">詳細 ›</button><div class="rings">'+
     ringBox(u&&u.recovery,rec,'恢復','#FF7A6B','var(--coral-soft)')+
     ringBox(u&&u.sleepScore,slp,'睡眠','#9B87F5','var(--lav-soft)')+
     ringBox(u&&u.movement,act,'活動','#4FBDEB','var(--sky-soft)')+
@@ -762,7 +765,7 @@ function pendingCelebration(){
   if(!state||!dataReady)return null; var seen=seenList();
   return FRIENDS.filter(function(f){return f.test&&hasFriend(f)&&seen.indexOf(f.id)<0;})[0]||null;
 }
-function maybeCelebrate(){
+function maybeCelebrate(){if(tab==='nutrition'||tab==='trends')return;
   if(tab==='game')return;
   if(celebrating)return; var f=pendingCelebration(); if(!f)return;
   celebrating=true;
@@ -1980,7 +1983,7 @@ $('fab').addEventListener('click',openChat);
 
 /* ---------- boot ---------- */
 function showApp(){['app','tabs','fab'].forEach(function(id){$(id).classList.remove('hide');});$('gate').classList.add('hide');}
-function showGate(err){$('gate').classList.remove('hide');$('gateErr').textContent=err||'';['app','tabs','fab'].forEach(function(id){$(id).classList.add('hide');});}
+function showGate(err){window.dispatchEvent(new Event('ming-state'));$('gate').classList.remove('hide');$('gateErr').textContent=err||'';['app','tabs','fab'].forEach(function(id){$(id).classList.add('hide');});}
 $('gateGo').addEventListener('click',function(){KEY=$('gateKey').value.trim();if(!KEY)return;try{localStorage.setItem('mingKey',KEY);}catch(e){}boot();});
 $('gateKey').addEventListener('keydown',function(e){if(e.key==='Enter')$('gateGo').click();});
 
@@ -2001,10 +2004,11 @@ function demoState(){
   s.settings.catAcc='bow'; s.friends=['capy','penguin'];
   return s;
 }
-function boot(){
+async function boot(){
   if(DEMO){state=demoState();lastTs='demo';dataReady=true;showApp();render();setSync('示範模式·唔會儲');return;}
   if(!KEY){showGate('');return;}
-  try{var c=JSON.parse(localStorage.getItem('mingCache')||'null');if(c&&c.state&&!state){state=defaults(c.state);lastTs=c.ts;showApp();render();}}catch(e){}
+  nutritionCacheOwner=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(KEY)))).map(function(x){return x.toString(16).padStart(2,'0');}).join('');
+  try{var c=JSON.parse(localStorage.getItem('mingCache')||'null');if(c&&c.owner===nutritionCacheOwner&&c.state&&!state){state=defaults(c.state);lastTs=c.ts;showApp();render();}}catch(e){}
   fetchRow().then(function(rs){
     if(!rs.length){try{localStorage.removeItem('mingKey');localStorage.removeItem('mingCache');}catch(e){}KEY='';state=null;showGate('暗號唔啱，再試一次');return;}
     state=defaults(rs[0].state);lastTs=rs[0].updated_at;dataReady=true;cacheSave();showApp();render();setSync('已同步 '+nowT());
@@ -2016,8 +2020,19 @@ setInterval(refreshMiuDaily,30000);
 setInterval(function(){if(chatOpen)loadChat();},3000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden){poll();checkVer();refreshMiuDaily();}});
 function checkVer(){if(DEMO)return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){var m=t.match(/APP_VER='([^']+)'/);if(m&&m[1]!==APP_VER)toast('🔄 有新版本，到「設定 → 更新 App」即可更新');}).catch(function(){});}
+
+window.MingFoodBridge={
+ identity:function(){return state?(DEMO?'ming-demo':KEY):'';},demo:function(){return DEMO;},state:function(){return state;},tab:function(){return tab;},headers:hdr,
+ endpoint:function(){return SB+'/functions/v1/ming-nutrition';},
+ navigate:function(next){if(['today','nutrition','trends'].indexOf(next)<0)return;tab=next;render();scrollTo(0,0);},
+ ready:async function(){for(var i=0;i<100&&(saving||pending.length);i++)await new Promise(function(r){setTimeout(r,100);});if(saving||pending.length)throw Error('其他修改仍未儲存，請等同步完成再試。');},
+ refresh:function(){poll();}
+};
+window.addEventListener('storage',function(e){if(e.key==='mingKey'&&e.newValue!==KEY){KEY='';state=null;window.dispatchEvent(new Event('ming-state'));location.reload();}});
+
 boot();
 })();
 </script>
+<script defer src="nutrition.js?v=20261004"></script>
 </body>
 </html>
