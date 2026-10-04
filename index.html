@@ -368,7 +368,7 @@ body.game-fullscreen{overflow:hidden}
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20261004-1152';
+var APP_VER='20261004-1155';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -392,7 +392,7 @@ function slotNow(){var h=new Date().getHours();return h<11?'早':h<15?'午':h<18
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function r1(x){return Math.round(x*10)/10;}
-function toast(t){var el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.remove('show');},2200);}
+function toast(t){if(tab==='nutrition'||tab==='trends')return;var el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.remove('show');},2200);}
 function hdr(x){return Object.assign({apikey:SBK,Authorization:'Bearer '+SBK,'x-client-info':KEY,'Content-Type':'application/json'},x||{});}
 function F(){var m={};state.foods.forEach(function(f){m[f.id]=f;});return m;}
 
@@ -516,7 +516,7 @@ function render(){
   $('fab').classList.toggle('hide',tab==='game');
   $('app').classList.toggle('game-active',tab==='game');
   document.body.classList.toggle('ming-food-page',tab==='nutrition'||tab==='trends');window.dispatchEvent(new Event('ming-state'));
-  checkBadges(); checkFriends(); setTimeout(maybeCelebrate,700);
+  if(tab!=='nutrition'&&tab!=='trends'){checkBadges();checkFriends();setTimeout(maybeCelebrate,700);}
 }
 function viewToday(){
   var t=today(), u=uh(t), tt=totals(t), s=state.settings;
@@ -1672,7 +1672,7 @@ function doShare(){
 }
 
 /* ---------- confetti ---------- */
-function confetti(){
+function confetti(){if(tab==='nutrition'||tab==='trends')return;
   var c=$('fx'),g=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
   var cols=['#FF7A6B','#FFB940','#9B87F5','#4FBDEB','#FF8FBF'],ps=[];
   for(var i=0;i<110;i++)ps.push({x:innerWidth/2,y:innerHeight*.35,vx:(Math.random()-.5)*14,vy:-Math.random()*14-4,r:Math.random()*6+4,c:cols[i%5],a:Math.random()*6,life:0});

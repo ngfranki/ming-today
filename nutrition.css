@@ -32,3 +32,5 @@
 .ming-food-ready #fab{display:none!important}.ming-food-page #main,.ming-food-page header.top{display:none!important}.ming-food-page #ming-food-page{display:block}#ming-food-page{display:none}
 nav.tabs{width:min(480px,calc(100% - 24px))}nav.tabs button{flex:1;min-width:0;padding:10px 3px;font-size:12px}
 @media(max-width:360px){.ming-food-ui .app-dialog{padding:18px!important}.ming-food-ui .app-dialog.boris-chat-sheet{padding:14px 10px!important}.ming-food-ui .boris-chat-input .n-photo{min-width:34px;width:34px}.ming-food-ui .boris-chat-input{gap:3px}}
+
+.ming-food-ui{background:transparent}
