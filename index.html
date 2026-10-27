@@ -322,7 +322,7 @@ body.game-fullscreen{overflow:hidden}
 .game-fullscreen .tt-intro{display:none}
 
 </style>
-<link rel="stylesheet" href="nutrition.css?v=20261004-1158">
+<link rel="stylesheet" href="nutrition.css?v=20261027-0615">
 </head>
 <body>
 <div id="gate" class="gate hide">
@@ -366,9 +366,9 @@ body.game-fullscreen{overflow:hidden}
 (function(){
 'use strict';
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
-var SBK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2d3Nwbmp5c2Z5b211c3p6amF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODIxMzIsImV4cCI6MjEwMTA1ODEzMn0.fmrc8DlO1UXcsLnUdhTG6IZyxv1kZEVP8jSEIQgf2d4';
+var SBK='sb_publishable_YROUDaSxinrbHH4g7q8gmQ_4za7Ohfj';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20261004-1158';
+var APP_VER='20261027-0615';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
@@ -393,7 +393,12 @@ function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function r1(x){return Math.round(x*10)/10;}
 function toast(t){if(tab==='nutrition'||tab==='trends')return;var el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.remove('show');},2200);}
-function hdr(x){return Object.assign({apikey:SBK,Authorization:'Bearer '+SBK,'x-client-info':KEY,'Content-Type':'application/json'},x||{});}
+function hdr(x){
+  // sb_publishable_… is not a JWT. Send it only as apikey. Authorization is for a real JWT (a user session, or a legacy anon key that still starts with eyJ). Do not decode the key.
+  var h={apikey:SBK,'x-client-info':KEY,'Content-Type':'application/json'};
+  if(typeof SBK==='string'&&SBK.slice(0,3)==='eyJ') h.Authorization='Bearer '+SBK;
+  return Object.assign(h,x||{});
+}
 function F(){var m={};state.foods.forEach(function(f){m[f.id]=f;});return m;}
 
 /* ---------- state ---------- */
@@ -2033,6 +2038,6 @@ window.addEventListener('storage',function(e){if(e.key==='mingKey'&&e.newValue!=
 boot();
 })();
 </script>
-<script defer src="nutrition.js?v=20261004-1158"></script>
+<script defer src="nutrition.js?v=20261027-0615"></script>
 </body>
 </html>
