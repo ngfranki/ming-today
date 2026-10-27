@@ -322,7 +322,7 @@ body.game-fullscreen{overflow:hidden}
 .game-fullscreen .tt-intro{display:none}
 
 </style>
-<link rel="stylesheet" href="nutrition.css?v=20261027-0615">
+<link rel="stylesheet" href="nutrition.css?v=20261027-0717">
 </head>
 <body>
 <div id="gate" class="gate hide">
@@ -368,15 +368,20 @@ body.game-fullscreen{overflow:hidden}
 var SB='https://lvwspnjysfyomuszzjay.supabase.co';
 var SBK='sb_publishable_YROUDaSxinrbHH4g7q8gmQ_4za7Ohfj';
 var VISION=SB+'/functions/v1/ming-vision';
-var APP_VER='20261027-0615';
+var APP_VER='20261027-0717';
 var DEMO=/[?&]demo=1/.test(location.search);
 var BUILTIN=JSON.parse(document.getElementById('builtinFoods').textContent);
 var K=['kcal','protein','carb','fat','fiber'];
 var SLOTS=['早','午','下午','晚','宵'];
 var MOODS=[['😆','勁開心'],['😊','幾好'],['😐','一般'],['😴','好攰'],['😣','唔多好']];
 var $=function(id){return document.getElementById(id);};
-var KEY=''; try{KEY=localStorage.getItem('mingKey')||'';}catch(e){}
-var nutritionCacheOwner='',state=null, lastTs=null, pending=[], saving=false, tab='today', photos={}, duo=null;
+var APP_ID='ming';
+var SESSION_KEY='appSession.ming';
+var AUTH=SB+'/functions/v1/app-auth';
+var TOKEN='';
+var nutritionCacheOwner='ming';
+var gateBusy=false, sessionEnding=false;
+var state=null, lastTs=null, pending=[], saving=false, tab='today', photos={}, duo=null;
 
 /* ---------- helpers ---------- */
 function pad(n){return (n<10?'0':'')+n;}
@@ -395,10 +400,59 @@ function r1(x){return Math.round(x*10)/10;}
 function toast(t){if(tab==='nutrition'||tab==='trends')return;var el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(function(){el.classList.remove('show');},2200);}
 function hdr(x){
   // sb_publishable_… is not a JWT. Send it only as apikey. Authorization is for a real JWT (a user session, or a legacy anon key that still starts with eyJ). Do not decode the key.
-  var h={apikey:SBK,'x-client-info':KEY,'Content-Type':'application/json'};
+  // x-client-info is the app-auth session token (never the typed passphrase).
+  var h={apikey:SBK,'x-client-info':TOKEN,'Content-Type':'application/json'};
   if(typeof SBK==='string'&&SBK.slice(0,3)==='eyJ') h.Authorization='Bearer '+SBK;
   return Object.assign(h,x||{});
 }
+function tokenHeaders(){return {apikey:SBK,'x-client-info':TOKEN};}
+function dropPassphrase(){try{localStorage.removeItem('mingKey');}catch(e){}}
+function readSession(){
+  try{
+    var raw=localStorage.getItem(SESSION_KEY);
+    if(!raw)return null;
+    var s=JSON.parse(raw);
+    if(!s||typeof s.token!=='string'||!s.token||typeof s.expiresAt!=='string'){localStorage.removeItem(SESSION_KEY);return null;}
+    var exp=Date.parse(s.expiresAt);
+    if(!isFinite(exp)||exp<=Date.now()){localStorage.removeItem(SESSION_KEY);return null;}
+    return {token:s.token,expiresAt:s.expiresAt};
+  }catch(e){try{localStorage.removeItem(SESSION_KEY);}catch(x){}return null;}
+}
+function writeSession(s){localStorage.setItem(SESSION_KEY,JSON.stringify({token:s.token,expiresAt:s.expiresAt}));}
+function clearSession(){TOKEN='';try{localStorage.removeItem(SESSION_KEY);}catch(e){}}
+function authFailMessage(status){
+  if(status===401)return '暗號唔啱，再試一次';
+  if(status===429)return '試得太多次，請 15 分鐘後再試';
+  if(status===503)return '新暗號未設定，暫時未開到。遲啲再試';
+  if(status===403)return '呢個網址未獲允許，開唔到';
+  if(status===400)return '登入資料有問題，再試一次';
+  return '連唔到網絡，遲啲再試';
+}
+function endSession(msg){
+  if(sessionEnding)return;
+  sessionEnding=true;
+  clearSession();
+  dropPassphrase();
+  state=null; pending=[]; saving=false; dataReady=false;
+  try{closeSheet();}catch(e){}
+  showGate(msg||'登入過咗期，請再入一次暗號');
+}
+function expectRows(rs){
+  if(rs&&rs.length)return true;
+  endSession('登入過咗期，請再入一次暗號');
+  return false;
+}
+var rawFetch=window.fetch.bind(window);
+window.fetch=function(input,init){
+  return rawFetch(input,init).then(function(r){
+    var u='';
+    try{u=typeof input==='string'?input:(input&&input.url)||'';}catch(e){}
+    if(r.status===401&&u.indexOf(SB+'/')===0&&u.indexOf('/functions/v1/app-auth/login')<0&&u.indexOf('/functions/v1/app-auth/logout')<0){
+      endSession('登入過咗期，請再入一次暗號');
+    }
+    return r;
+  });
+};
 function F(){var m={};state.foods.forEach(function(f){m[f.id]=f;});return m;}
 
 /* ---------- state ---------- */
@@ -428,7 +482,11 @@ function setSync(t){$('sync').textContent=t;}
 
 function fetchRow(){
   return fetch(SB+'/rest/v1/ming_log?id=eq.main&select=state,updated_at',{headers:hdr()})
-    .then(function(r){if(!r.ok)throw new Error('net');return r.json();});
+    .then(function(r){
+      if(r.status===401){var e=new Error('auth');e.auth=true;throw e;}
+      if(!r.ok)throw new Error('net');
+      return r.json();
+    });
 }
 // 🔴 樂觀鎖：每個改動係一個 function；寫入用 PATCH ...&updated_at=eq.<上次>，0 row＝有人（同步 script／Eva）改過 → 重讀、重套未寫入嘅改動、再寫。
 function mutate(fn){
@@ -436,25 +494,44 @@ function mutate(fn){
 }
 function flush(){
   if(DEMO){pending=[];setSync('示範模式·唔會儲');return;}
-  if(saving||!pending.length)return;
+  if(saving||!pending.length||!TOKEN||sessionEnding)return;
   saving=true; setSync('儲緊…');
   var batch=pending.slice(), ts=new Date().toISOString();
   fetch(SB+'/rest/v1/ming_log?id=eq.main&updated_at=eq.'+encodeURIComponent(lastTs),{method:'PATCH',headers:hdr({Prefer:'return=representation'}),body:JSON.stringify({state:state,updated_at:ts})})
-  .then(function(r){if(!r.ok)throw new Error('net');return r.json();})
+  .then(function(r){
+    if(r.status===401){var e=new Error('auth');e.auth=true;throw e;}
+    if(!r.ok)throw new Error('net');
+    return r.json();
+  })
   .then(function(rows){
+    if(!TOKEN){saving=false;return;}
     if(rows&&rows.length){lastTs=rows[0].updated_at;pending=pending.slice(batch.length);saving=false;cacheSave();setSync('已儲低 '+nowT());if(pending.length)flush();return;}
     return fetchRow().then(function(rs){
+      if(!expectRows(rs)){saving=false;pending=[];return;}
       var fresh=defaults(rs[0].state); pending.forEach(function(f){f(fresh);});
       state=fresh; lastTs=rs[0].updated_at; saving=false; render(); flush();
     });
   })
-  .catch(function(){saving=false;setSync('離線，遲啲再儲');setTimeout(flush,8000);});
+  .catch(function(err){
+    saving=false;
+    if(!TOKEN||(err&&err.auth)||sessionEnding)return;
+    setSync('離線，遲啲再儲');setTimeout(flush,8000);
+  });
 }
 function poll(){
-  if(DEMO||!KEY||saving||pending.length)return;
-  fetch(SB+'/rest/v1/ming_log?id=eq.main&select=updated_at',{headers:hdr()}).then(function(r){return r.json();}).then(function(rs){
-    if(rs&&rs[0]&&rs[0].updated_at!==lastTs&&!pending.length){
-      fetchRow().then(function(r2){state=defaults(r2[0].state);lastTs=r2[0].updated_at;cacheSave();render();setSync('已同步 '+nowT());});
+  if(DEMO||!TOKEN||saving||pending.length||sessionEnding)return;
+  fetch(SB+'/rest/v1/ming_log?id=eq.main&select=updated_at',{headers:hdr()}).then(function(r){
+    if(r.status===401||!TOKEN)return null;
+    if(!r.ok)throw new Error('net');
+    return r.json();
+  }).then(function(rs){
+    if(!rs||!TOKEN)return;
+    if(!rs.length){if(dataReady||state)endSession('登入過咗期，請再入一次暗號');return;}
+    if(rs[0].updated_at!==lastTs&&!pending.length){
+      fetchRow().then(function(r2){
+        if(!TOKEN||!expectRows(r2))return;
+        state=defaults(r2[0].state);lastTs=r2[0].updated_at;cacheSave();render();setSync('已同步 '+nowT());
+      });
     }
   }).catch(function(){});
 }
@@ -463,7 +540,7 @@ function poll(){
 function loadPhotos(from,to){
   if(DEMO)return Promise.resolve();
   return fetch(SB+'/rest/v1/ming_photo?select=id,thumb&date=gte.'+from+'&date=lte.'+to,{headers:hdr()})
-    .then(function(r){return r.json();}).then(function(rs){(rs||[]).forEach(function(p){photos[p.id]=p.thumb;});render();}).catch(function(){});
+    .then(function(r){if(r.status===401||!TOKEN)return [];return r.json();}).then(function(rs){if(!Array.isArray(rs))return;(rs||[]).forEach(function(p){photos[p.id]=p.thumb;});render();}).catch(function(){});
 }
 function savePhoto(id,date,thumb){
   photos[id]=thumb;
@@ -1388,7 +1465,8 @@ function viewDuo(){
 }
 function loadDuo(){
   if(DEMO){duo={ming:{nights:[{h:7.2},{h:6.8},{h:7.5}]},franki:{nights:[{h:6.9},{h:7.1},{h:6.5}]}};return;}
-  fetch(SB+'/rest/v1/duo_share?select=owner,data',{headers:hdr()}).then(function(r){return r.json();}).then(function(rs){
+  fetch(SB+'/rest/v1/duo_share?select=owner,data',{headers:hdr()}).then(function(r){if(r.status===401||!TOKEN)return [];return r.json();}).then(function(rs){
+    if(!Array.isArray(rs)||!TOKEN)return;
     duo={};(rs||[]).forEach(function(x){duo[x.owner]=x.data;});if(tab==='fun')render();}).catch(function(){});
 }
 
@@ -1491,9 +1569,9 @@ function startPhoto(file){
     draft={date:today(),time:nowT(),slot:slot,thumb:r[1],items:[]};
     if(DEMO){draft.items=[itemFrom('rice_white',180,'白飯','一碗左右'),itemFrom('choy_sum',80,'菜心',''),itemFrom(null,60,'豉油雞醬','')];return showDraft();}
     return fetch(VISION,{method:'POST',headers:hdr(),body:JSON.stringify({stage:'full',image:r[0],foods:foodsForAI()})})
-      .then(function(x){if(!x.ok)throw new Error(x.status);return x.json();})
-      .then(function(j){draft.items=(j.items||[]).map(function(i){return itemFrom(i.foodId&&F()[i.foodId]?i.foodId:null,+i.grams||0,i.name,i.note);});showDraft();});
-  }).catch(function(e){openSheet(head('😅 認唔到')+'<p>'+(String(e.message)==='401'?'暗號過咗期，重新登入一次':'網絡有啲問題，再試一次？')+'</p><button class="btn primary" style="width:100%" data-act="close">好</button>');});
+      .then(function(x){if(x.status===401||!TOKEN)return null;if(!x.ok)throw new Error('net');return x.json();})
+      .then(function(j){if(!j||!TOKEN)return;draft.items=(j.items||[]).map(function(i){return itemFrom(i.foodId&&F()[i.foodId]?i.foodId:null,+i.grams||0,i.name,i.note);});showDraft();});
+  }).catch(function(){if(!TOKEN&&!DEMO)return;openSheet(head('😅 認唔到')+'<p>網絡有啲問題，再試一次？</p><button class="btn primary" style="width:100%" data-act="close">好</button>');});
 }
 function startType(){
   openSheet(head('⌨️ 打字記錄')+'<label class="field"><span>食咗乜？用逗號分開（例：叉燒飯，凍檸茶少甜）</span><textarea id="typeTx" rows="3"></textarea></label><button class="btn primary" style="width:100%" data-act="typeGo">交畀 Eva 估</button>');
@@ -1506,9 +1584,9 @@ function typeGo(){
   draft={date:today(),time:nowT(),slot:slotNow(),thumb:null,items:[]};
   if(DEMO){draft.items=names.map(function(n){return itemFrom(null,100,n,'');});return showDraft();}
   fetch(VISION,{method:'POST',headers:hdr(),body:JSON.stringify({stage:'estimate',names:names,foods:foodsForAI()})})
-    .then(function(x){if(!x.ok)throw 0;return x.json();})
-    .then(function(j){draft.items=(j.items||[]).map(function(i){return itemFrom(i.foodId&&F()[i.foodId]?i.foodId:null,+i.grams||0,i.name,i.note);});showDraft();})
-    .catch(function(){openSheet(head('😅 估唔到')+'<p>網絡有啲問題，再試一次？</p><button class="btn primary" style="width:100%" data-act="close">好</button>');});
+    .then(function(x){if(x.status===401||!TOKEN)return null;if(!x.ok)throw 0;return x.json();})
+    .then(function(j){if(!j||!TOKEN)return;draft.items=(j.items||[]).map(function(i){return itemFrom(i.foodId&&F()[i.foodId]?i.foodId:null,+i.grams||0,i.name,i.note);});showDraft();})
+    .catch(function(){if(!TOKEN)return;openSheet(head('😅 估唔到')+'<p>網絡有啲問題，再試一次？</p><button class="btn primary" style="width:100%" data-act="close">好</button>');});
 }
 function showDraft(){
   var d=draft, tot=0;
@@ -1704,7 +1782,8 @@ function renderChat(){
 }
 function loadChat(){
   if(DEMO){chatMsgs=[{role:'eva',text:'我係 Eva（示範模式）👋 真版會幫你入數同答問題。',status:'done'}];renderChat();return;}
-  fetch(SB+'/rest/v1/ming_chat?select=id,role,text,status,meta->thumb,created_at&order=id.desc&limit=30',{headers:hdr()}).then(function(r){return r.json();}).then(function(rs){
+  fetch(SB+'/rest/v1/ming_chat?select=id,role,text,status,meta->thumb,created_at&order=id.desc&limit=30',{headers:hdr()}).then(function(r){if(r.status===401||!TOKEN)return [];return r.json();}).then(function(rs){
+    if(!Array.isArray(rs)||!TOKEN)return;
     chatMsgs=(rs||[]).reverse().map(function(m){return {id:m.id,role:m.role,text:m.text,status:m.status,meta:{thumb:m.thumb}};});renderChat();
   }).catch(function(){});
 }
@@ -1715,7 +1794,7 @@ function chatSend(){
   chatMsgs.push({role:'user',text:tx||'（相）',status:'pending',meta:{thumb:meta.thumb}}); renderChat();
   chatImg=null;
   if(DEMO)return;
-  fetch(SB+'/rest/v1/ming_chat',{method:'POST',headers:hdr(),body:JSON.stringify({role:'user',text:tx||'（相）',status:'pending',meta:meta})}).catch(function(){toast('傳送唔到，再試一次');});
+  fetch(SB+'/rest/v1/ming_chat',{method:'POST',headers:hdr(),body:JSON.stringify({role:'user',text:tx||'（相）',status:'pending',meta:meta})}).then(function(r){if(r.status===401||!TOKEN)return;if(!r.ok)throw 0;}).catch(function(){if(!TOKEN)return;toast('傳送唔到，再試一次');});
 }
 
 /* TRIPLE_TILE_BEGIN — local-only game, independent of health state. */
@@ -1948,7 +2027,7 @@ document.addEventListener('click',function(e){
   else if(a==='updateApp')updateAppNow();
   else if(a==='saveSet'){var num=function(id){var v=parseFloat($(id).value);return isNaN(v)?null:v;};
     mutate(function(s){var t=s.settings;t.name=$('sName').value.trim()||'曉明';t.dailyKcal=num('sKcal');t.proteinTarget=num('sProt');t.waterGoal=num('sWater')||8;t.sleepGoalH=num('sSleep')||7;t.goalKg=num('sGoalKg');t.goalBf=num('sGoalBf');});closeSheet();toast('儲存咗 ✅');}
-  else if(a==='logout'){try{localStorage.removeItem('mingKey');localStorage.removeItem('mingCache');}catch(x){}location.reload();}
+  else if(a==='logout'){doLogout();}
   else if(a==='share')openShare();
   else if(a==='doShare')doShare();
   else if(a==='duoOn'){mutate(function(s){s.settings.duo.sleep=true;});toast('👨‍👧 加入咗！');}
@@ -1988,8 +2067,39 @@ $('fab').addEventListener('click',openChat);
 
 /* ---------- boot ---------- */
 function showApp(){['app','tabs','fab'].forEach(function(id){$(id).classList.remove('hide');});$('gate').classList.add('hide');}
-function showGate(err){window.dispatchEvent(new Event('ming-state'));$('gate').classList.remove('hide');$('gateErr').textContent=err||'';['app','tabs','fab'].forEach(function(id){$(id).classList.add('hide');});}
-$('gateGo').addEventListener('click',function(){KEY=$('gateKey').value.trim();if(!KEY)return;try{localStorage.setItem('mingKey',KEY);}catch(e){}boot();});
+function showGate(err){window.dispatchEvent(new Event('ming-state'));var gk=$('gateKey');if(gk)gk.value='';$('gate').classList.remove('hide');$('gateErr').textContent=err||'';['app','tabs','fab'].forEach(function(id){$(id).classList.add('hide');});}
+function login(phrase){
+  if(gateBusy||!phrase)return;
+  gateBusy=true;
+  $('gateErr').textContent='開緊門…';
+  rawFetch(AUTH+'/login',{method:'POST',headers:{apikey:SBK,'Content-Type':'application/json'},body:JSON.stringify({app:APP_ID,passphrase:phrase})})
+  .then(function(r){return r.json().catch(function(){return {};}).then(function(j){return {ok:r.ok,status:r.status,body:j};});})
+  .then(function(x){
+    gateBusy=false;
+    var typed=phrase; phrase='';
+    var token=x.body&&typeof x.body.token==='string'?x.body.token:'';
+    var exp=x.body?x.body.expiresAt:'';
+    if(typeof exp==='number'&&isFinite(exp))exp=new Date(exp).toISOString();
+    if(token&&token===typed){showGate('登入未成功，再試一次');return;}
+    if(!x.ok){showGate(authFailMessage(x.status));return;}
+    if(!token||typeof exp!=='string'||!isFinite(Date.parse(exp))||Date.parse(exp)<=Date.now()){showGate('登入未成功，再試一次');return;}
+    try{writeSession({token:token,expiresAt:exp});}catch(e){showGate('呢部機儲存唔到登入，再試一次');return;}
+    dropPassphrase();
+    TOKEN=token;
+    sessionEnding=false;
+    boot();
+  }).catch(function(){gateBusy=false;phrase='';showGate('連唔到網絡，遲啲再試');});
+}
+function doLogout(){
+  var token=TOKEN;
+  sessionEnding=true;
+  TOKEN='';
+  if(token){rawFetch(AUTH+'/logout',{method:'POST',headers:{apikey:SBK,'x-client-info':token},keepalive:true}).catch(function(){});}
+  clearSession();
+  dropPassphrase();
+  location.reload();
+}
+$('gateGo').addEventListener('click',function(){var phrase=$('gateKey').value.trim();$('gateKey').value='';if(!phrase)return;login(phrase);});
 $('gateKey').addEventListener('keydown',function(e){if(e.key==='Enter')$('gateGo').click();});
 
 function demoState(){
@@ -2009,16 +2119,55 @@ function demoState(){
   s.settings.catAcc='bow'; s.friends=['capy','penguin'];
   return s;
 }
+async function sha256Hex(text){
+  var buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(function(x){return x.toString(16).padStart(2,'0');}).join('');
+}
+async function retirePassphrase(){
+  var old='';
+  try{old=localStorage.getItem('mingKey')||'';}catch(e){}
+  if(old&&window.crypto&&crypto.subtle){
+    try{
+      var legacy=await sha256Hex(old);
+      old='';
+      var c=JSON.parse(localStorage.getItem('mingCache')||'null');
+      if(c&&c.state&&c.owner===legacy&&c.owner!==nutritionCacheOwner){
+        c.owner=nutritionCacheOwner;
+        localStorage.setItem('mingCache',JSON.stringify(c));
+      }
+    }catch(e){}
+  }
+  old='';
+  dropPassphrase();
+}
+function loadCache(){
+  try{
+    var c=JSON.parse(localStorage.getItem('mingCache')||'null');
+    if(c&&c.owner===nutritionCacheOwner&&c.state&&!state){state=defaults(c.state);lastTs=c.ts;showApp();render();}
+  }catch(e){}
+}
 async function boot(){
-  if(DEMO){state=demoState();lastTs='demo';dataReady=true;showApp();render();setSync('示範模式·唔會儲');return;}
-  if(!KEY){showGate('');return;}
-  nutritionCacheOwner=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(KEY)))).map(function(x){return x.toString(16).padStart(2,'0');}).join('');
-  try{var c=JSON.parse(localStorage.getItem('mingCache')||'null');if(c&&c.owner===nutritionCacheOwner&&c.state&&!state){state=defaults(c.state);lastTs=c.ts;showApp();render();}}catch(e){}
+  if(DEMO){await retirePassphrase();state=demoState();lastTs='demo';dataReady=true;showApp();render();setSync('示範模式·唔會儲');return;}
+  await retirePassphrase();
+  var sess=readSession();
+  if(!sess){showGate('');return;}
+  TOKEN=sess.token;
+  sessionEnding=false;
+  loadCache();
+  try{
+    var sr=await fetch(AUTH+'/session',{method:'POST',headers:tokenHeaders()});
+    if(sr.status===401||!TOKEN||sessionEnding)return;
+  }catch(e){}
+  if(!TOKEN||sessionEnding)return;
   fetchRow().then(function(rs){
-    if(!rs.length){try{localStorage.removeItem('mingKey');localStorage.removeItem('mingCache');}catch(e){}KEY='';state=null;showGate('暗號唔啱，再試一次');return;}
+    if(!TOKEN||sessionEnding)return;
+    if(!expectRows(rs))return;
     state=defaults(rs[0].state);lastTs=rs[0].updated_at;dataReady=true;cacheSave();showApp();render();setSync('已同步 '+nowT());
     loadPhotos(shift(today(),-30),today());loadDuo();
-  }).catch(function(){if(state){setSync('離線，用緊上次嘅資料');}else showGate('連唔到網絡，遲啲再試');});
+  }).catch(function(err){
+    if(!TOKEN||sessionEnding||(err&&err.auth))return;
+    if(state){setSync('離線，用緊上次嘅資料');}else showGate('連唔到網絡，遲啲再試');
+  });
 }
 setInterval(poll,5000);
 setInterval(refreshMiuDaily,30000);
@@ -2027,17 +2176,19 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden){pol
 function checkVer(){if(DEMO)return;fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){var m=t.match(/APP_VER='([^']+)'/);if(m&&m[1]!==APP_VER)toast('🔄 有新版本，到「設定 → 更新 App」即可更新');}).catch(function(){});}
 
 window.MingFoodBridge={
- identity:function(){return state?(DEMO?'ming-demo':KEY):'';},demo:function(){return DEMO;},state:function(){return state;},tab:function(){return tab;},headers:hdr,
+ identity:function(){return state?(DEMO?'ming-demo':'ming'):'';},demo:function(){return DEMO;},state:function(){return state;},tab:function(){return tab;},headers:hdr,
  endpoint:function(){return SB+'/functions/v1/ming-nutrition';},
  navigate:function(next){if(['today','nutrition','trends'].indexOf(next)<0)return;tab=next;render();scrollTo(0,0);},
  ready:async function(){for(var i=0;i<100&&(saving||pending.length);i++)await new Promise(function(r){setTimeout(r,100);});if(saving||pending.length)throw Error('其他修改仍未儲存，請等同步完成再試。');},
  refresh:function(){poll();}
 };
-window.addEventListener('storage',function(e){if(e.key==='mingKey'&&e.newValue!==KEY){KEY='';state=null;window.dispatchEvent(new Event('ming-state'));location.reload();}});
+window.addEventListener('storage',function(e){
+  if(e.key===SESSION_KEY||e.key==='mingKey'){TOKEN='';state=null;window.dispatchEvent(new Event('ming-state'));location.reload();}
+});
 
 boot();
 })();
 </script>
-<script defer src="nutrition.js?v=20261027-0615"></script>
+<script defer src="nutrition.js?v=20261027-0717"></script>
 </body>
 </html>
